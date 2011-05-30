@@ -1,0 +1,141 @@
+<?xml version="1.0"?>
+<project name="3rd-party" basedir=".">
+
+	<property name="ICC_LIBRARY_PATH" value="/opt/intel/Compiler/11.1/069/lib/ia32/"/>
+	<property name="MKL_LIBRARY_PATH" value="/opt/intel/mkl/10.2.5.035/lib/32/"/>
+
+	<property name="VTK_PATH" value="/home/gordon/libs/vtk-installed/include/vtk-5.6"/>
+
+
+
+	<property name="LD_LIBRARY_PATH" value="${ICC_LIBRARY_PATH}:${MKL_LIBRARY_PATH}"/>
+
+
+	<import file="macros.xml"/>
+
+	<target name="zlib">
+		<exec dir="./3rd-party/zlib/1.2.5" executable="icc" failonerror="true">
+			<arg line="				
+				-c
+            	adler32.c
+                compress.c
+                crc32.c
+                deflate.c
+                gzclose.c
+                gzlib.c
+                gzread.c
+                gzwrite.c
+                inflate.c
+                infback.c
+                inftrees.c
+                inffast.c
+                trees.c
+                uncompr.c
+                zutil.c"/>
+		</exec>
+
+		<exec dir="./3rd-party/zlib/1.2.5" executable="ar" failonerror="true">
+			<arg line="rc libzlib.a
+    	                adler32.o
+    	                compress.o
+    	                crc32.o
+    	                deflate.o
+    	                gzclose.o
+    	                gzlib.o
+    	                gzread.o
+    	                gzwrite.o
+    	                inflate.o
+    	                infback.o
+    	                inftrees.o
+    	                inffast.o
+    	                trees.o
+    	                uncompr.o
+    	                zutil.o"/>
+		</exec>
+		<delete dir="./3rd-party/zlib/1.2.5" includes="*.o"/>
+	</target>
+
+	<target name="libpng">
+		<exec dir="./3rd-party/libPNG/1.4.4" executable="icc" failonerror="true">
+			<arg line="				
+				-I${basedir}/3rd-party/zlib/1.2.5
+	            	       -L${basedir}/3rd-party/zlib/1.2.5
+	            	       -c
+	            	       png.c
+	            	       pngerror.c 
+	            	       pngget.c   
+                           pngmem.c   
+                           pngpread.c 
+                           pngread.c  
+                           pngrio.c   
+	            	       pngrtran.c 
+	            	       pngrutil.c 
+	            	       pngset.c   	            	      
+	            	       pngtrans.c 
+	            	       pngwio.c   
+	            	       pngwrite.c 
+	            	       pngwtran.c 
+	            	       pngwutil.c
+				           -lzlib"/>			
+		</exec>
+
+		<exec dir="./3rd-party/libPNG/1.4.4" executable="ar" failonerror="true">
+			<arg line="rc libpng.a                           
+                           png.o
+                           pngerror.o 
+                           pngget.o   
+                           pngmem.o   
+                           pngpread.o 
+                           pngread.o  
+                           pngrio.o   
+                           pngrtran.o 
+                           pngrutil.o 
+                           pngset.o                           
+                           pngtrans.o 
+                           pngwio.o   
+                           pngwrite.o 
+                           pngwtran.o 
+                           pngwutil.o"/>
+		</exec>
+		<delete dir="./3rd-party/libPNG/1.4.4" includes="*.o"/>
+	</target>
+
+	<target name="libjpeg">
+		<exec dir="./3rd-party/libJPEG/8b" executable="icc" failonerror="true">
+			<arg line="				
+				-c
+	                	jaricom.c jcapimin.c jcapistd.c jcarith.c jccoefct.c jccolor.c
+	                	        jcdctmgr.c jchuff.c jcinit.c jcmainct.c jcmarker.c jcmaster.c
+	                	        jcomapi.c jcparam.c jcprepct.c jcsample.c jctrans.c jdapimin.c
+	                	        jdapistd.c jdarith.c jdatadst.c jdatasrc.c jdcoefct.c jdcolor.c
+	                	        jddctmgr.c jdhuff.c jdinput.c jdmainct.c jdmarker.c jdmaster.c
+	                	        jdmerge.c jdpostct.c jdsample.c jdtrans.c jerror.c jfdctflt.c
+	                	        jfdctfst.c jfdctint.c jidctflt.c jidctfst.c jidctint.c jquant1.c
+	                	        jquant2.c jutils.c jmemmgr.c"/>
+		</exec>
+
+		<exec dir="./3rd-party/libJPEG/8b" executable="ar" failonerror="true">
+			<arg line="rc libjpeg.a                           
+	                	jaricom.o jcapimin.o jcapistd.o jcarith.o jccoefct.o jccolor.o
+	                	                                jcdctmgr.o jchuff.o jcinit.o jcmainct.o jcmarker.o jcmaster.o
+	                	                                jcomapi.o jcparam.o jcprepct.o jcsample.o jctrans.o jdapimin.o
+	                	                                jdapistd.o jdarith.o jdatadst.o jdatasrc.o jdcoefct.o jdcolor.o
+	                	                                jddctmgr.o jdhuff.o jdinput.o jdmainct.o jdmarker.o jdmaster.o
+	                	                                jdmerge.o jdpostct.o jdsample.o jdtrans.o jerror.o jfdctflt.o
+	                	                                jfdctfst.o jfdctint.o jidctflt.o jidctfst.o jidctint.o jquant1.o
+	                	                                jquant2.o jutils.o jmemmgr.o"/>
+		</exec>
+		<delete dir="./3rd-party/libJPEG/8b" includes="*.o"/>
+	</target>
+	
+    <target name="openjpeg">        
+    </target>	
+
+	<target name="all" depends="zlib,libpng,libjpeg"/>
+	
+	<target name="some">
+		<echo message="${os.arch}"/>
+	</target>
+
+
+</project>

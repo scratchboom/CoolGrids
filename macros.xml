@@ -1,0 +1,71 @@
+<?xml version="1.0"?>
+<project name="macros">
+
+	<macrodef name="icc">
+		<attribute name="mainfile"/>
+		<sequential>
+			<mkdir dir="./bin/@{mainfile}"/>
+			<exec executable="icpc" failonerror="true">
+				<arg line="-U__GXX_EXPERIMENTAL_CXX0X__
+					       @{mainfile}.cpp
+					       -o ./bin/@{mainfile}/@{mainfile}.exe
+					       -g
+					
+					       -I./3rd-party/boost/1.44.0
+					       -I./3rd-party/MTL/4.0.7536/include
+					       -I./3rd-party/CImg/1.4.4
+					       -I./3rd-party/zlib/1.2.5
+				           -I./3rd-party/libPNG/1.4.4
+					       -I./3rd-party/IntelOdeSolver/include
+					       -I../vtk561/VTK/./HERE/include/vtk-5.6
+				           -I/usr/include/mpich2
+              
+					
+					../vtk561/VTK/./HERE/lib/vtk-5.6/libvtkHybrid.a
+					../vtk561/VTK/./HERE/lib/vtk-5.6/libvtkFiltering.a					
+					../vtk561/VTK/./HERE/lib/vtk-5.6/libvtkIO.a					
+					../vtk561/VTK/./HERE/lib/vtk-5.6/libvtkCommon.a
+					../vtk561/VTK/./HERE/lib/vtk-5.6/libvtkzlib.a
+					../vtk561/VTK/./HERE/lib/vtk-5.6/libvtksys.a
+					./3rd-party/libPNG/1.4.4/libpng.a
+					./3rd-party/zlib/1.2.5/libzlib.a			
+					./3rd-party/IntelOdeSolver/lib/ia32/libiode_ia32.a
+					
+					-lmpich
+					
+					-O0
+					
+					-mkl
+					
+					
+					       -std=c++0x -openmp"/>
+			</exec>			
+		</sequential>
+	</macrodef>
+
+	<macrodef name="gcc">
+		<attribute name="mainfile"/>
+		<sequential>
+			<exec executable="gcc" failonerror="true">
+				<arg line="-I${VTK_PATH/include} @{mainfile}.cpp -o @{mainfile}.exe"/>
+			</exec>
+		</sequential>
+	</macrodef>
+
+
+	<macrodef name="curl">
+		<attribute name="username" />
+		<attribute name="password"/>
+		<attribute name="url"/>
+		<attribute name="data"/>		
+
+		<sequential>
+			<exec executable="curl" failonerror="true">
+				<arg line="--silent --show-error" />
+				<arg line="--header Accept-Charset='UTF-8'" />
+				<arg line="@{url}"/>
+			</exec>
+		</sequential>
+	</macrodef>
+
+</project>

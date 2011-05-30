@@ -1,0 +1,154 @@
+<?xml version="1.0"?>
+<project name="examples" basedir=".">
+
+	<property name="ICC_LIBRARY_PATH" value="/opt/intel/Compiler/11.1/069/lib/ia32/" />
+	<property name="MKL_LIBRARY_PATH" value="/opt/intel/mkl/10.2.5.035/lib/32/" />
+
+	<property name="VTK_PATH" value="/home/gordon/libs/vtk-installed/include/vtk-5.6" />
+
+
+
+	<property name="LD_LIBRARY_PATH" value="${ICC_LIBRARY_PATH}:${MKL_LIBRARY_PATH}" />
+
+
+	<import file="macros.xml" />
+
+	<target name="build Advection1D">
+		<icc mainfile="Advection1D" />
+	</target>
+
+	<target name="build Advection2D">
+		<icc mainfile="Advection2D" />
+	</target>
+
+	<target name="build Advection3D">
+		<icc mainfile="Advection3D" />
+	</target>
+
+	<target name="build ByteBufferTest">
+		<icc mainfile="ByteBufferTest" />
+	</target>
+
+	<target name="build CsvSaverTest">
+		<icc mainfile="CsvSaverTest" />
+	</target>
+
+	<target name="build PngImageTest">
+		<icc mainfile="PngImageTest" />
+	</target>
+
+	<target name="build BmpImageTest">
+		<icc mainfile="BmpImageTest" />
+	</target>
+
+	<target name="build Test">
+		<icc mainfile="Test" />
+	</target>
+
+	<target name="build RaspadRazryv-LaxFriedrichs">
+		<icc mainfile="RaspadRazryv-LaxFriedrichs" />
+	</target>
+
+	<target name="build RaspadRazryv-Godunov">
+		<icc mainfile="RaspadRazryv-Godunov" />
+	</target>
+
+	<target name="build RaspadRazryv-Godunov-2D">
+		<icc mainfile="RaspadRazryv-Godunov-2D"/>
+	</target>
+
+	<target name="build RaspadRazryv-Godunov-2nd-Order">
+		<icc mainfile="RaspadRazryv-Godunov-2nd-Order" />
+	</target>
+
+	<target name="build FDTD-HD-1D">
+		<icc mainfile="FDTD-HD-1D" />
+	</target>
+
+	<target name="build FDTD-HD">
+		<icc mainfile="FDTD-HD" />
+	</target>
+
+	<target name="build FDTD-HD-new">
+		<icc mainfile="FDTD-HD-new" />
+	</target>
+	
+	<target name="build AtmosphereKinetics">
+	    <icc mainfile="AtmosphereKinetics" />
+	</target>
+
+	<target name="build FDTD">
+		<icc mainfile="FDTD" />
+	</target>
+
+	<target name="build VtkImageDataWriter">
+		<icc mainfile="VtkImageDataWriter" />
+	</target>
+
+	<target name="build MovingChargeField">
+		<icc mainfile="MovingChargeField" />
+	</target>
+
+	<target name="build SolveTest">
+		<icc mainfile="SolveTest" />
+	</target>
+
+	<target name="build MTL4-Test">
+		<icc mainfile="MTL4-Test" />
+	</target>
+	
+	<target name="build MPI">
+	    <icc mainfile="MPI" />
+	</target>
+	
+	<target name="build MPI-wrapped">
+	    <icc mainfile="MPI-wrapped" />
+	</target>
+
+	<target name="build CImgTest">
+		<icc mainfile="CImgTest" />
+	</target>
+
+	<target name="build ublasTest">
+		<icc mainfile="ublasTest" />
+	</target>
+
+	<target name="build IntelOdeSolverTest">
+		<icc mainfile="IntelOdeSolverTest" />
+	</target>
+
+	<target name="build ClosureToFunctionPointerTest">
+		<icc mainfile="ClosureToFunctionPointerTest" />
+	</target>
+
+	<target name="build oldFDTD">
+		<icc mainfile="oldFDTD" />
+	</target>
+
+	<target name="build FibonacciGrid3D">
+		<icc mainfile="FibonacciGrid3D" />
+	</target>
+
+	<target name="build OdeSolveTest">
+		<icc mainfile="OdeSolveTest" />
+	</target>
+
+	<target name="build HydroDynamicVectorsTest">
+		<icc mainfile="HydroDynamicVectorsTest" />
+	</target>
+	
+	<target name="build molokov">
+	    <icc mainfile="molokov" />
+	</target>
+
+
+	<target name="build yandex">
+		<icc mainfile="yandex" />
+	</target>
+
+	<target name="scalaxy list projects">
+		<curl username="scratchboom" password="megapass" url="https://www.scalaxy.ru/api/projects.json" data="ololo"/>
+	</target>
+
+
+</project>

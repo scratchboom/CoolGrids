@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+<project name="main" default="all" basedir=".">
+	 
+	<property name="ICC_LIBRARY_PATH" value="/opt/intel/Compiler/11.1/069/lib/ia32/"/>
+	<property name="MKL_LIBRARY_PATH" value="/opt/intel/mkl/10.2.5.035/lib/32/"/>
+		
+	<property name="LD_LIBRARY_PATH" value="${ICC_LIBRARY_PATH}:${MKL_LIBRARY_PATH}"/>	
+	
+	<import file="macros.xml"/>
+			
+	
+    <target name="build">   
+    	<icc mainfile="Main"/>    	
+    </target>	
+	
+	<target name="run" >		
+		<exec executable="${basedir}/Main.exe">
+			  <env key="LD_LIBRARY_PATH" path="${LD_LIBRARY_PATH}"/>			
+		</exec>
+	</target>
+	
+	<target name="runMPI">
+		<exec executable="mpiexec">
+			<arg line="-n 4 ${basedir}/MPItest.exe"/>
+		</exec>
+	</target>
+	
+	<target name="all" depends="build,run"/>
+	
+	<target name="clean plots">
+		<delete dir="./plot" includes="*.*"/>
+	</target>
+	
+	<target name="remote">
+		<echo message="remote started"/>
+		
+		<scp port="2222" trust="yes" username="abakumov" keyfile="${user.home}/.ssh/id_rsa" passphrase="just 2 connect" todir="abakumov@srv6.secure.la:~/projects/Grids++">
+			<fileset dir="${basedir}">
+			    <include name="*.exe"/>
+			</fileset>
+		</scp>
+
+		
+		<sshsession host="193.125.143.194" port="2222" trust="yes" username="abakumov" keyfile="${user.home}/.ssh/id_rsa" passphrase="just 2 connect">
+			<sequential>
+				<sshexec command="ls"/>
+			</sequential>
+        </sshsession>
+		
+			
+		<echo message="remote finished"/>
+	
+	</target>
+	 
+    
+    
+</project>
