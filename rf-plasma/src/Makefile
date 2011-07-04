@@ -1,9 +1,9 @@
 BUILDDIR=../build
 BINDIR=../bin
-#CONFIG=debug
-#OPTS=-ffixed-line-length-132 -g -O0 -D"LINUX"
-CONFIG=release
-OPTS=-ffixed-line-length-132 -O3 -D"LINUX"
+CONFIG=debug
+OPTS=-ffixed-line-length-132 -g -O0 -D"LINUX"
+#CONFIG=release
+#OPTS=-ffixed-line-length-132 -O3 -D"LINUX"
 FC=gfortran
 PP=fpp
 
