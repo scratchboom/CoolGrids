@@ -1,0 +1,13 @@
+#!/bin/sh -e
+outfile=vf-all.png
+perlscript=line2col.pl
+tmpfile=tmp-`basename $0`-`date +%Y%m%d%H%M%S`.$$
+tail +2 Test1D.out | head -1 | cut -d ' ' -f 2-1001 | perl -n $perlscript > $tmpfile.1
+tail +2 Test1D.out | head -1 | cut -d ' ' -f 1002-2001 | perl -n $perlscript > $tmpfile.2
+tail +2 Test1D.out | head -1 | cut -d ' ' -f 2002-3001 | perl -n $perlscript > $tmpfile.3
+tail +2 Test1D.out | head -1 | cut -d ' ' -f 3002-4001 | perl -n $perlscript > $tmpfile.4
+tail +2 Test1D.out | head -1 | cut -d ' ' -f 4002-5001 | perl -n $perlscript > $tmpfile.5
+tail +2 Test1D.out | head -1 | cut -d ' ' -f 5002-6001 | perl -n $perlscript > $tmpfile.6
+tail +2 Test1D.out | head -1 | cut -d ' ' -f 6002-7001 | perl -n $perlscript > $tmpfile.7
+gnuplot-cols.tcl "$tmpfile.1 1:2 VF1 $tmpfile.2 1:2 VF2 $tmpfile.3 1:2 VF3 $tmpfile.4 1:2 VF4 $tmpfile.5 1:2 VF5 $tmpfile.6 1:2 VF6 $tmpfile.7 1:2 VF7" $outfile
+rm -f $tmpfile.*

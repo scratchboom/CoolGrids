@@ -1,0 +1,16 @@
+#!/bin/sh -e
+
+tmpfile=tmp-`basename $0`-`date +%Y%m%d%H%M%S`.$$
+
+cols=`tail +2 Data.out | head -1`
+
+xcol=4
+cn=2
+for c in $cols; do
+	if [ $cn -eq 4 ]; then break; fi
+	tail +3 Data.out| cut -d ' ' -f $cn,$xcol > $tmpfile
+	gnuplot-cols.tcl "$tmpfile 2:1 $c" transfer-$c.png
+	cn=$(($cn + 1))
+done
+
+rm -f $tmpfile

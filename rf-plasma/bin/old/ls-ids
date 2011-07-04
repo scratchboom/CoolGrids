@@ -1,0 +1,8 @@
+#!perl
+use strict;
+my %ids;
+while (<>) {
+    my @a = m/\b[a-zA-Z_][0-9a-zA-Z_]*\b/g;
+    foreach my $e (@a) { $ids{$e} = 1; }
+}
+foreach my $k (sort keys %ids) { print $k.' '; }

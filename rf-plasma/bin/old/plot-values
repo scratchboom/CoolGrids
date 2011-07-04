@@ -1,0 +1,14 @@
+#!/bin/sh -e
+
+tmpfile=tmp-`basename $0`-`date +%Y%m%d%H%M%S`.$$
+
+perl -ne '
+my $i = 0;
+print "\n";
+foreach my $v (split(" ", $_)) {
+	print $i++ . " " . $v . "\n";
+}
+' > $tmpfile
+
+gnuplot-cols.tcl "$tmpfile 1:2 Title" $1
+rm -f $tmpfile

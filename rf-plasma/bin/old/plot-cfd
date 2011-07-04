@@ -1,0 +1,5 @@
+#!/bin/sh -e
+tail +2 Test1D.out | head -1 | cut -d ' ' -f 2-1001 | plot-values a.png
+tail +3 Test1D.out | head -1 | cut -d ' ' -f 2-1001 | plot-values b1.png
+tail +3 Test1D.out | head -1 | cut -d ' ' -f 1002-2001 | plot-values b2.png
+tail +3 Test1D.out | head -1 | cut -d ' ' -f 2002-3001 | plot-values b3.png

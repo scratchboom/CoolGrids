@@ -1,0 +1,63 @@
+#!/usr/bin/perl
+use strict;
+
+my %V = ();
+foreach (@ARGV) {
+    if (m/([a-zA-Z0-9\-._]+)=(.*)/) {
+	$V{$1} = $2;
+    }
+}
+
+# PARAMS:
+# m=<m1>-<m2>
+# v=<p1>,<p2>,...
+
+my @values = qw(N m ne vz vx Et Ex Hy Ez);
+my %specvalues = (
+    '@all' => 'ne,vz,vx,Et,Ex,Hy,Ez',
+    '@f' => 'Ex,Hy,Ez',
+    '@gd' => 'ne,vz,vx,Et',
+    '@qs' => 'q1,q2,q3,q4,s1,s2,s3'
+);
+if (defined $V{v}) {
+    my $str = $V{v};
+    foreach (sort keys %specvalues) {
+	$str =~ s/$_/$specvalues{$_}/g;
+    }
+    @values = split ',', $str;
+}
+
+my $mmin; my $mmax;
+if (defined $V{m}) {
+    $V{m} =~ m/(\d+)-(\d+)/ or die "bad format for 'm'";
+    $mmin = $1; $mmax = $2;
+}
+
+my $Nmin; my $Nmax;
+if (defined $V{N}) {
+    if ($V{N} =~ m/(\d+)-(\d+)/) {
+        $Nmin = $1; $Nmax = $2;
+    }
+    elsif ($V{N} =~ m/(\d+)/) {
+        $Nmin = $Nmax = $1;
+    }
+    else {
+        die "bad format for 'N'";
+    }
+}
+
+sub opt($$) {
+    if ($_[0]) { return $_[1]; }
+    else { return ""; }
+}
+
+print " ".
+    opt(defined($V{e}), "if (N >= $V{e}) {exit} ").
+    opt(defined($V{m}) || defined($V{N}),
+        "if ( 1 ".
+        opt(defined($V{m}), "&& m>=$mmin && m<=$mmax ").
+        opt(defined($V{N}), "&& N>=$Nmin && N<=$Nmax ").
+        ") ".
+        "{ print ".join(' "\t" ', @values)."; } "
+        ).
+    " ";

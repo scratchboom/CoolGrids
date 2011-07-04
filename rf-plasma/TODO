@@ -1,0 +1,15 @@
++ Adams method (2nd order, explicit)
++ several consequent rf-pulses
+- where field energy goes to?
+- 3rd order hyperbolics
+    - write hyperbolic code for orders > 1.5 for advect of vx component
+? 3rd order Adams
++ what to do with rf-pulse smoothing, due to hyperbolics
+    + insure it is due to hyperbolics: check for long distance with rhs off
+    + kurant number equal 1 (didn't help)
+    + mmag should more than zero! h/tau should be equal to c
+
+==
+- todo
++ done
+? need info

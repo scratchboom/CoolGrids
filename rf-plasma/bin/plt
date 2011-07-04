@@ -1,0 +1,63 @@
+#!/bin/sh -e
+
+# TODO: make '-T' option for reading title from STDIN
+
+usage() {
+    echo "plot data read from STDIN to OUT_PNG_FILE"
+    echo "usage: `basename $0` [-h] [-t TITLE] OUT_PNG_FILE [gnuplot-cols.tcl optional arguments]"
+    gnuplot-cols.tcl
+}
+
+if [ -z "$1" ]; then
+    usage 1>&2
+    exit 1
+fi
+
+tmpfile=tmp-`basename $0`-`date +%Y%m%d%H%M%S`.$$
+
+default_readall() {
+    cat > $tmpfile
+}
+
+f_readall() {
+    read tmpline
+    echo $tmpline > $tmpfile
+    echo >> $tmpfile
+    read tmpline
+    echo $tmpline >> $tmpfile
+    echo >> $tmpfile
+    cat >> $tmpfile
+}
+
+title="-"
+readall="default_readall"
+while echo $1 | egrep '^-' > /dev/null; do
+    opt=$1
+    shift
+    case $opt in
+	-f)
+	    readall="f_readall"
+	    ;;
+	-h)
+	    todo="read firstline"
+	    ;;
+	-t)
+	    title="$1"
+	    shift
+	    ;;
+	*)
+	    echo "unknown option $opt" 1>&2
+	    usage 1>&2
+	    exit 1
+	    ;;
+    esac
+done
+
+if [ "$title" == "-" ]; then
+    title="$1"
+fi
+
+$todo
+$readall
+gnuplot-cols.tcl "$tmpfile 1:2 \"$title\"" "$@"
+rm -f $tmpfile

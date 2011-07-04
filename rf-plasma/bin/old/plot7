@@ -1,0 +1,8 @@
+#!/bin/sh -e
+(tail +2 Test1D.out | head -1 | cut -d ' ' -f 2-1001 | plot-values vf1.png) #
+(tail +2 Test1D.out | head -1 | cut -d ' ' -f 1002-2001 | plot-values vf2.png) #
+(tail +2 Test1D.out | head -1 | cut -d ' ' -f 2002-3001 | plot-values vf3.png) #
+(tail +2 Test1D.out | head -1 | cut -d ' ' -f 3002-4001 | plot-values vf4.png) #
+(tail +2 Test1D.out | head -1 | cut -d ' ' -f 4002-5001 | plot-values vf5.png) #
+(tail +2 Test1D.out | head -1 | cut -d ' ' -f 5002-6001 | plot-values vf6.png) #
+(tail +2 Test1D.out | head -1 | cut -d ' ' -f 6002-7001 | plot-values vf7.png) #

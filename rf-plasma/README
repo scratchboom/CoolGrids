@@ -1,0 +1,13 @@
+
+I. QUICK START
+
+1) on UNIX:
+    $ cd src
+    $ make
+    $ cd ../input/imp1
+    $ export PATH=$PATH:<absolute_path_to_your_rf-plasma_root>/bin
+    $ (mk.sh last >mk.log 2>mk.errlog </dev/null &)
+    
+2) on WINDOWS:
+    You will need Compaq Visual Fortran and Array Visualizer
+    

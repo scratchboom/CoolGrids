@@ -1,0 +1,36 @@
+#!/usr/bin/perl
+use strict;
+use Getopt::Std;
+use Data::Dumper;
+
+my %fd = (); # all files data
+sub datacmp {
+    return $fd{$_[0]}{pos} cmp $fd{$_[1]}{pos};
+}
+
+my %opt = ();
+getopts('r:', \%opt);
+
+die "you must specify '-r' option\n" unless defined($opt{r});
+$opt{r} =~ s/\s//g;
+my $cnt = 0;
+foreach (split ';', $opt{r}) {
+    my ($name, $fmt) = split ':';
+    die "bad format" if @_ != 2;
+    $fd{$name}{format} = [split ",", $fmt];
+    $fd{$name}{pos} = $cnt++;
+    open ($fd{$name}{fh}, "<", $_) or die "cannot open file $_\n";
+}
+
+while (<>) {
+    chomp;
+    if ($_ =~ /^\s*$/) { print "\n"; next; }
+    foreach $v (split /\s+/) {
+	if ($v eq "") { next; }
+	print "$v\n";
+    }
+}
+
+foreach (keys %fd) {
+    close $fd{$_}{fh};
+}
