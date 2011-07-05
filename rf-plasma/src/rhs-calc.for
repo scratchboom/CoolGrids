@@ -315,6 +315,7 @@ C===================================================
      2     pefie,chn,pechn,dee,pedee !obschie bloki dlya rasch. pravoj chasti
       
 #ifdef DEBUG_OUTPUT
+      IF(m .eq. 1) write(*,*) 'nextstep=', N
       write(*,*) 'm=', m
 #endif
 
