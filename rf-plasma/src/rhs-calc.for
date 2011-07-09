@@ -493,6 +493,7 @@ c     1     WSee_Et*WEt,WSee_1
      1     -(Wjg+Wjv)*Wni*Wne - Wne*Wjp*Wn*Wno2
 
       write(*,*) 'Se=', WSe
+      write(*,*) 'WSee_1 + WQe_1 + WQw_1=', WSee_1 + WQe_1 + WQw_1
 
 #endif
 
@@ -519,8 +520,8 @@ c     1     WSee_Et*WEt,WSee_1
       D(1,5) = 0
       D(1,6) = 0
       D(2,5) = 0
-      D(2,6) = -cze/cme
-      D(3,5) = -cze/cme/2d0
+      D(2,6) = -cze/cme       ! Почему тут нет деления на 2.0
+      D(3,5) = -cze/cme/2d0   ! А тут есть???
       D(3,6) = 0
       D(4,5) = 0
       D(4,6) = 0
