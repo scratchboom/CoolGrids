@@ -1,7 +1,7 @@
 #!/bin/sh -e
 LEN="$1"
 MK="$2"
-EXT=emf
+EXT=png
 EXTRA="$3 set terminal $EXT size 500,350; set key off; set logscale y; set xrange [0:$LEN];"
 CS="$4"
 ZMOVE='(($1/'"$MK"'*'"$LEN"')-@TIME*'"$CS"')'
