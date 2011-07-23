@@ -24,11 +24,13 @@ const double C=SPEED_OF_LIGHT;// м/с    C=sqrt(1/EPS0/MU0)
 const double ATOMIC_MASS_UNIT = 1.660538782E-27;// [кг]
 const double AVERAGE_AIR_ION_MASS = 29.0 * ATOMIC_MASS_UNIT;// [кг]  для высот < 100-120 км молекулярная масса почти постоянна
 const double ELECTRON_MASS = 9.10938215E-31;// Масса электрона, [кг]
+const double ELECTRON_CHARGE = 1.602E-19;// Заряд электрона, [Кл]
 
 
 //параметры атмосферы на высоте 40км
 const double ATMOSPHERE_O2_CONCENTRATION_40KM = 1.7E16         * 1E6;// [1/м^3]
-const double ATMOSPHERE_ELECTRON_CONCENTRATION_40KM = 3.16E4   * 1E6;// [1/м^3]
+//const double ATMOSPHERE_ELECTRON_CONCENTRATION_40KM = 3.16E4   * 1E6;// [1/м^3]
+const double ATMOSPHERE_ELECTRON_CONCENTRATION_40KM = 2.8E7;// [1/м^3] (trifinov rf-plasma)
 const double ATMOSPHERE_TEMPERATURE_40KM = 250.0;// [К]
 const double ATMOSPHERE_DENSITY_40KM = 0.003851;// [кг/м^3]
 
@@ -77,7 +79,7 @@ double k_b=1.38E-23;// Дж/К
 double NE0=ATMOSPHERE_ELECTRON_CONCENTRATION_40KM;
 double ATM_T=200.0; //температура атмоcферы K
 
-void rhs(int *ptrN,double *t,double *u,double *f);
+int rhs(int *ptrN,double *t,double *u,double *f);
 
 
 struct UserData{
@@ -91,6 +93,10 @@ struct UserData{
 
 	double V_SQR;
 };
+
+UserData* G_userdata;
+int G_i;
+
 
 /*
 accumulator acc_U0;
@@ -109,6 +115,9 @@ accumulator acc_f4;
 double dt;
 
 int main(){
+
+
+	G_userdata = new UserData();
 
 //	accumulator acc;
 //	acc(10.0);
@@ -147,7 +156,7 @@ int main(){
 
 
     double Nx=1024;
-    double Nt=2000;
+    double Nt=10000;
 
     double SOURCE_IX = (int)(Nx*0.1)+0.5;
 
@@ -178,8 +187,9 @@ int main(){
 
 
 	GnuPlotSaver1D gnuPlotSaverTe;
+	gnuPlotSaverTe.setAutoScale();
 	gnuPlotSaverTe.setLineColor("#FF0000");
-	gnuPlotSaverTe.setValueRange(0.03 , 0.04);
+	//gnuPlotSaverTe.setValueRange(0.03 , 0.04);
 	gnuPlotSaverTe.setSize(1200,400);
 
 	GnuPlotSaver1D gnuPlotSaverV;
@@ -196,6 +206,10 @@ int main(){
 
     double DT = 0.5*dx/C;
     dt = DT;//TODO remove global dt
+
+    DBGVAL(DT);
+	DBGVAL(DT*1e-2);
+	DBGVAL(5E-13);
 
 
     std::cout << "stability parameters:" << std::endl;
@@ -418,12 +432,16 @@ int main(){
 	        cout << "source\n" << endl;
 			double t = it * DT;
 
+			double chi = 4E9;
 
-	        double sourceHz = H_AMPLITUDE*sin(2.0*M_PI*t/IMPULSE_TIME)*gaussStep(t,IMPULSE_TIME*4,IMPULSE_TIME);
+
+
+	        //double sourceHz = H_AMPLITUDE*sin(2.0*M_PI*t/IMPULSE_TIME)*gaussStep(t,IMPULSE_TIME*4,IMPULSE_TIME);
+			double sourceHz = H_AMPLITUDE*sin(2.0*M_PI*t*chi)*gaussStep(t,1.0/chi,1.0/chi);
 	        //	                sourceHz=H_AMPLITUDE * onePlusCosPulse(DR/(dx*length(PAD_SIZE_Y,PAD_SIZE_Z)) *M_PI) *sin(2.0*M_PI*  (t/IMPULSE_TIME - KY*DY - KZ*DZ)) *gaussStep(t,IMPULSE_TIME*1.5,IMPULSE_TIME);
 
 
-	        Hz(it+0.5, SOURCE_IX) = sourceHz;
+	        Hz(it+0.5, SOURCE_IX) += sourceHz;
 	        cout << "sourceHz=" << sourceHz << endl;
 
 
@@ -626,6 +644,8 @@ int main(){
 
 		cout << "dissipation step" << endl;
 
+		double fff[6];
+
 		U[it + 1].iterateWhole(GRID1D_ITERATOR {
 			U(it+1,ix)=U(it,ix) - DT/dx*(Fx(it,ix+0.5)-Fx(it,ix-0.5));
 
@@ -635,8 +655,8 @@ int main(){
 			const double WEt = HdVec3D::internalEnergyPerVolumeUnit(U(it,ix)) / n_e / Wevlt;//электронная температура [эВ]
 
 			int N = 5;//размерность системы уравнений
-			const int USER_DATA_N = ceil(1.*sizeof(UserData)/sizeof(double));//размер данных, передаваемых в функцию решения диф. уравнения (в размерах double)
-			double y[N + USER_DATA_N];
+			//const int USER_DATA_N = ceil(1.*sizeof(UserData)/sizeof(double));//размер данных, передаваемых в функцию решения диф. уравнения (в размерах double)
+			double y[5 /*+ USER_DATA_N*/];
 
 			const double vx = HdVec3D::velocityX( U(it+1,ix) );
 			const double vy = HdVec3D::velocityY( U(it+1,ix) );
@@ -661,6 +681,15 @@ int main(){
 			y[3] = vz;
 			y[4] = E_internal;//TODO
 
+			/*
+		    double y0 = y[0];
+		    double y1 = y[1];
+		    double y2 = y[2];
+		    double y3 = y[3];
+		    double y4 = y[4];
+		    */
+
+			/*
 			UserData* userdata = (UserData*)(&y[N]);
 			userdata->E_x = avg( Ex(it+1,ix) , Ex(it+1,ix) , Ex(it+1,ix) , Ex(it+1,ix) ); //TODO может сделать усреднение и по слоям времени?
 			userdata->E_y = avg( Ey(it+1,ix-0.5) , Ey(it+1,ix-0.5) , Ey(it+1,ix+0.5) , Ey(it+1,ix+0.5) ); //TODO может сделать усреднение и по слоям времени?
@@ -671,11 +700,22 @@ int main(){
 			userdata->H_z = avg( Hz(it+0.5,ix) , Hz(it+0.5,ix) , Hz(it+1.5,ix) , Hz(it+1.5,ix) );//TODO нужно ди усреднение по времени?
 
 			userdata->V_SQR = sqr(vx,vy,vz);
+			*/
 
-			double time=0;
-			double time_end=DT;
+			G_userdata->E_x = avg( Ex(it+1,ix) , Ex(it+1,ix) , Ex(it+1,ix) , Ex(it+1,ix) );//TODO может сделать усреднение и по слоям времени?
+			G_userdata->E_y = avg( Ey(it+1,ix-0.5) , Ey(it+1,ix-0.5) , Ey(it+1,ix+0.5) , Ey(it+1,ix+0.5) );//TODO может сделать усреднение и по слоям времени?
+			G_userdata->E_z = avg( Ez(it+1,ix-0.5) , Ez(it+1,ix-0.5) , Ez(it+1,ix+0.5) , Ez(it+1,ix+0.5) );//TODO может сделать усреднение и по слоям времени?
 
-			double hm=DT * 1e-2; /* minimal step size for the methods */
+			G_userdata->H_x = avg( Hx(it+0.5,ix-0.5) , Hx(it+0.5,ix+0.5) , Hx(it+1.5,ix-0.5) , Hx(it+1.5,ix+0.5) );//TODO нужно ди усреднение по времени?
+			G_userdata->H_y = avg( Hy(it+0.5,ix) , Hy(it+0.5,ix) , Hy(it+1.5,ix) , Hy(it+1.5,ix) );//TODO нужно ди усреднение по времени?
+			G_userdata->H_z = avg( Hz(it+0.5,ix) , Hz(it+0.5,ix) , Hz(it+1.5,ix) , Hz(it+1.5,ix) );//TODO нужно ди усреднение по времени?
+
+			G_userdata->V_SQR = sqr(vx,vy,vz);
+
+			double time=N*DT;
+			double time_end=(N+1)*DT;
+
+			double hm=DT * 1e-9; /* minimal step size for the methods */
 			double ep=1e-6;  /* relative tolerance. The code cannot guarantee the requested accuracy for ep<1.d-9 */
 			double tr=1e-50;  /* absolute tolerance */
 		    double h=hm;
@@ -688,7 +728,35 @@ int main(){
 
 	    	int ierr=0;
 
-			dodesol(ipar,&N,&time,&time_end,y,rhs,NULL,&h,&hm,&ep,&tr,dpar,kd,&ierr);
+
+
+
+	    	//rhs(&N,)
+
+	    	double DT_HD = DT/10.0;
+
+
+	    	double tmpy[5];
+	    	for(int i=0;i<5;i++)tmpy[i] = y[i];
+
+	    	for(int i=0;i<10;i++) {
+
+	    		int res = rhs(&N,&time,y,fff);
+
+
+
+					y[0] += fff[0]*DT_HD;
+					y[1] += fff[1]*DT_HD;
+					y[2] += fff[2]*DT_HD;
+					y[3] += fff[3]*DT_HD;
+					y[4] += fff[4]*DT_HD;
+
+					if(res>0) {
+						for(int j=0;j<5;j++)y[j] = tmpy[j];
+						i=0;
+					}
+				}
+			//dodesol(ipar,&N,&time,&time_end,y,rhs,NULL,&h,&hm,&ep,&tr,dpar,kd,&ierr);
 //			DBGVAL("dodesolved");
 
 
@@ -726,21 +794,21 @@ int main(){
 		std::cout <<"\n\n" <<std::endl;
 
 
-		DBGLN("f0");
+		//DBGLN("f0");
 		//printStats(acc_f0);
-		DBGLN("f1");
+		//DBGLN("f1");
 		//printStats(acc_f1);
-		DBGLN("f2");
+		//DBGLN("f2");
 		//printStats(acc_f2);
-		DBGLN("f3");
+		//DBGLN("f3");
 		//printStats(acc_f3);
-		DBGLN("f4");
+		//DBGLN("f4");
 		//printStats(acc_f4);
 
 		//pressAnyKey();
 
 
-
+/*
 	    if (isEveryNth(it, 10)) {
 
 	    	gnuPlotSaverH.save(Hx[it + 0.5], frame("Hx_", it, "plot"),GRID1D_CALCULATOR{
@@ -767,16 +835,17 @@ int main(){
 	    	    return Ez(it,ix);
 	        });
 		}
+*/
 
-	    if (isEveryNth(it, 10)) {
+	    if (isEveryNth(it, 100)) {
 	       	gnuPlotSaverNe.save(U[it], frame("Ne_", it, "plot"),GRID1D_CALCULATOR{
 	    		return HdVec3D::density(U(it,ix)) / cme;
 	    	});
 
 	       	gnuPlotSaverTe.save(U[it], frame("Te_", it, "plot"),GRID1D_CALCULATOR{
-	       		return J_TO_EV(HdVec3D::internalEnergyPerMassUnit(U(it,ix)) * cme);
+	       		return log(J_TO_EV(HdVec3D::internalEnergyPerMassUnit(U(it,ix)) * cme));
 	        });
-
+/*
 	       	gnuPlotSaverV.save(U[it], frame("Vx_", it, "plot"),GRID1D_CALCULATOR{
 	       	    return HdVec3D::velocityX(U(it,ix));
 	        });
@@ -788,7 +857,7 @@ int main(){
 	       	gnuPlotSaverV.save(U[it], frame("Vz", it, "plot"),GRID1D_CALCULATOR{
 	       	    return HdVec3D::velocityZ(U(it,ix));
 	        });
-
+*/
 	    }
 
 		}
@@ -800,7 +869,8 @@ int main(){
 }
 
 
-void rhs(int *ptrN,double *t,double *u,double *f){
+int rhs(int *ptrN,double *t,double *u,double *f){
+
 	int N = *ptrN;
 
 	double n_e = u[0];
@@ -811,6 +881,7 @@ void rhs(int *ptrN,double *t,double *u,double *f){
 
 	double Et = u[4];//тепловая энергия одного электрона [Дж]
 	double WEt = J_TO_EV(Et);//тепловая энергия одного электрона [эВ]
+	double WEfull = WEt + ELECTRON_MASS*sqr(V_x,V_y,V_z)/2.0;//полная энергия одного электрона [эВ]
 
 //	DBGVAL(WEt);
 
@@ -822,22 +893,24 @@ void rhs(int *ptrN,double *t,double *u,double *f){
 	const double n_0 = n - n_i;//т.к n = n_i + n_0 (такие обозначения)
 
 
-	const UserData* userdata = (UserData*)(&u[N]);
+	//const UserData* userdata = (UserData*)(&u[N]);
+	//const UserData userdata = (UserData*)(&u[N]);
 
-    const double E_x = userdata->E_x;
-    const double E_y = userdata->E_y;
-    const double E_z = userdata->E_z;
+    const double E_x = G_userdata->E_x;
+    const double E_y = G_userdata->E_y;
+    const double E_z = G_userdata->E_z;
 
-    const double H_x = userdata->H_x;
-    const double H_y = userdata->H_y;
-    const double H_z = userdata->H_z;
+    const double H_x = G_userdata->H_x;
+    const double H_y = G_userdata->H_y;
+    const double H_z = G_userdata->H_z;
 
-    const double V_SQR = userdata->V_SQR;
+    //const double V_SQR = userdata->V_SQR;
+    const double V_SQR = sqr(u[1],u[2],u[3]);
 
     const double m_e = ELECTRON_MASS;
     const double m = m_e;
     const double M = AVERAGE_AIR_ION_MASS;
-    const double e = ELECTRON_MASS;
+    const double e = ELECTRON_CHARGE;
 
 
     const double f_ = 11.67*(1.0+0.64*(WEt-11.35)/(88.65+WEt))*(1.0-exp(-0.0083*(WEt-11.35)));// [безразмерно]
@@ -863,7 +936,7 @@ void rhs(int *ptrN,double *t,double *u,double *f){
 
     const double sigma_e0 = 12.47 * PI_A0_SQR * (0.4 + 0.84*WEt/(0.5 + WEt));// [м^2]
 
-    const double v_ei = 16.0*sqrt(M_PI)/3.0 * quad( COULUMB_TO_CGS(cze) ) * L * n_i * sqr(Z)/sqrt(m_e)/pow(2.0*kT,3.0/2.0);
+    const double v_ei = 16.0*sqrt(M_PI)/3.0 * quad( COULUMB_TO_CGS(cze) ) * L * (n_i*1E-6) * sqr(Z)/sqrt(KG_TO_G(m_e))/pow(2.0*kT,3.0/2.0);//TODO перевести всё в CGS!!! //was ~1E-83
     const double v_e0 = 8.0*sigma_e0/3.0/sqrt(M_PI)*sqrt(2.0* EV_TO_J(kT)/m_e)*n_0;
 
 
@@ -884,7 +957,16 @@ void rhs(int *ptrN,double *t,double *u,double *f){
     const double Q_e = Q_ei + Q_e0;
     //const double Q_w = e*n_e*(abs(E_x*V_x) + abs(E_y*V_y) + abs(E_z*V_z));//TODO не симметрично относительно поворота СК, что имел ввиду Ступитский?
     //const double Q_w = e*n_e*(E_x*V_x + E_y*V_y + E_z*V_z);//TODO не симметрично относительно поворота СК, размерность нормальная? [Дж/с/м^3]
-    const double Q_w = e*n_e*sqrt( sqr(E_x*V_x , E_y*V_y , E_z*V_z) );
+    //const double Q_w = e*n_e*sqrt( sqr(E_x*V_x , E_y*V_y , E_z*V_z) );
+    //const double Q_w = e*n_e*( E_x*V_x + E_y*V_y + E_z*V_z );
+    const double Q_w = -e*n_e*( E_x*V_x + E_y*V_y + E_z*V_z );
+    DBGVAL(Q_w);
+    DBGVAL(e*n_e*E_x*V_x  /n_e);
+    DBGVAL(e*n_e*E_y*V_y  /n_e);
+    DBGVAL(e*n_e*E_z*V_z  /n_e);
+
+
+
 
 
 	f[0] = S_e;
@@ -892,6 +974,59 @@ void rhs(int *ptrN,double *t,double *u,double *f){
     f[2] = -(v_ei+v_e0)*V_y  -  e*E_y/m  +  e*MU*MU0/m*V_x*H_z - e*MU*MU0/m*V_z*H_x;
     f[3] = -(v_ei+v_e0)*V_z  -  e*E_z/m  +  e*MU*MU0/m*V_y*H_x - e*MU*MU0/m*V_x*H_y;
     f[4] = (S_ee + Q_e + Q_w)/n_e;
+
+
+/*
+    gridM_N_V_ei_Vx(i) = -(v_ei     ) ;//*V_x;
+	gridM_N_V_e0_Vx(i) = -(     v_e0);//*V_x;
+	grid_e_Ex_m(i) = -e*E_y/m;
+	grid_e_MU_MU0_m_Vz_Hy(i) = e*MU*MU0/m*V_z*H_y;
+	grid_e_MU_MU0_m_Vy_Hz(i) = -e*MU*MU0/m*V_y*H_z;
+*/
+
+    //csv.addRow("time",*t);
+    //csv.ADD_ROW(-(v_ei     )*V_x);
+    //csv.ADD_ROW(-(     v_e0)*V_x);
+    //csv.ADD_ROW(-e*E_y/m );
+    //csv.ADD_ROW(+ e*MU*MU0/m*V_z*H_y);
+    //csv.ADD_ROW(- e*MU*MU0/m*V_y*H_z);
+    //csv.ADD_ROW(V_x);
+    //csv.ADD_ROW(V_y);
+//    csv.ADD_ROW(n_i);
+//    csv.ADD_ROW(n_0);
+//    csv.ADD_ROW(n);
+//    csv.ADD_ROW(n_e);
+//
+//    csv.ADD_ROW(j_0e);
+//    csv.ADD_ROW(j_g);
+//    csv.ADD_ROW(j_v);
+//    csv.ADD_ROW(j_p);
+//    csv.ADD_ROW(j_ei);
+//
+//    csv.ADD_ROW(sgm);
+//    csv.ADD_ROW(sigma_e0);
+//    csv.ADD_ROW(f_);
+//
+//    csv.ADD_ROW(v_ei);
+//    csv.ADD_ROW(v_e0);
+//    //csv.ADD_ROW(v_eO2);
+//
+//    csv.ADD_ROW(S_ee);
+//    csv.ADD_ROW(Q_e);
+//    csv.ADD_ROW(Q_w);
+
+
+
+
+
+    DBGVAL(-(v_ei )*V_y);
+    DBGVAL(-(     v_e0)*V_y);
+    DBGVAL(-  e*E_y/m);
+    DBGVAL(-E_y);
+    DBGVAL(e);
+    DBGVAL(m);
+
+
 
     #if(0)
     if((isnan(u[0])==0) && (isinf(u[0])==0)) acc_U0(u[0]);
@@ -907,71 +1042,84 @@ void rhs(int *ptrN,double *t,double *u,double *f){
     if((isnan(f[4])==0) && (isinf(f[4])==0)) acc_f4(f[4]);
     #endif
 
+#if(1)
+if((isnan(u[0])!=0) || (isinf(u[0])!=0)) return (1);
+if((isnan(u[1])!=0) || (isinf(u[1])!=0)) return (2);
+if((isnan(u[2])!=0) || (isinf(u[2])!=0)) return (3);
+if((isnan(u[3])!=0) || (isinf(u[3])!=0)) return (4);
+if((isnan(u[4])!=0) || (isinf(u[4])!=0)) return (5);
+
+if((isnan(f[0])!=0) || (isinf(f[0])!=0)) return (6);
+if((isnan(f[1])!=0) || (isinf(f[1])!=0)) {
+	std::cout<< "testtest" << std::endl;
+	std::cout<< "testtest2" << std::endl;
+	return (7);
+}
+if((isnan(f[2])!=0) || (isinf(f[2])!=0)) return (8);
+if((isnan(f[3])!=0) || (isinf(f[3])!=0)) return (9);
+if((isnan(f[4])!=0) || (isinf(f[4])!=0)) return (10);
+if(u[4]<0)return 11;
+#endif
+
     #if(1)
-//    DBGVAL(dt / *t);
+    DBGVAL(dt / *t);
 
-//    DBGVAL(j_0e );
-//    DBGVAL(n_e);
-//    DBGVAL(n_0);
-//
-//    DBGVAL(- j_ei*sqr(n_e)*n_i);
-//    DBGVAL(j_0e*n_e*n_0);
-//    DBGVAL(- j_v*n_e*n_i);
-//    DBGVAL(- j_g*n_e*n_i);
-//    DBGVAL(- j_p*n_e*n_O2*n);
-//
+    DBGVAL(j_0e );
+    DBGVAL(n_e);
+    DBGVAL(n_0);
 
-//    DBGVAL(v_ei);
-//    DBGVAL(v_e0);
-//    DBGVAL(-(v_ei+v_e0)*V_x);
-//    DBGVAL(-  e*E_x/m);
-//    DBGVAL(e*MU*MU0/m*V_z*H_y);
-//    DBGVAL(- e*MU*MU0/m*V_z*H_x);
+    DBGVAL(- j_ei*sqr(n_e)*n_i);
+    DBGVAL(j_0e*n_e*n_0);
+    DBGVAL(- j_v*n_e*n_i);
+    DBGVAL(- j_g*n_e*n_i);
+    DBGVAL(- j_p*n_e*n_O2*n);
 
 
+    DBGVAL(v_ei);
+    DBGVAL(v_e0);
+    DBGVAL(-(v_ei+v_e0)*V_x);
+    DBGVAL(-  e*E_x/m);
+    DBGVAL(e*MU*MU0/m*V_z*H_y);
+    DBGVAL(- e*MU*MU0/m*V_z*H_x);
 
 
 
 
+    DBGVAL(-(I+3.0/2.0*kT)*Wevlt*(n_e*n_0*j_0e  ));
+    DBGVAL(-(I+3.0/2.0*kT)*Wevlt*(             - sqr(n_e)*n_i*j_ei));
+    DBGVAL((3.0/2.0-fi)*kT*Wevlt*n_e*n_i*j_v);
+    DBGVAL(-3.0/2.0*kT*Wevlt*j_g*n_e*n_i);
+    DBGVAL(-3.0/2.0*kT*Wevlt*j_p*n_e*n_O2*n);//TODO заменить Wevlt на EV_TO_J()
 
 
+    DBGVAL(S_ee/n_e);
+    DBGVAL(Q_e/n_e);
+    DBGVAL(Q_w/n_e);
 
+    DBGVAL(Q_ei/n_e);
+    DBGVAL(Q_e0/n_e);
 
+    DBGVAL(u[0]);
+    DBGVAL(u[1]);
+    DBGVAL(u[2]);
+    DBGVAL(u[3]);
+    DBGVAL(u[4]);
+    DBGVAL(J_TO_EV(u[4]));
 
-//    DBGVAL(-(I+3.0/2.0*kT)*Wevlt*(n_e*n_0*j_0e  ));
-//    DBGVAL(-(I+3.0/2.0*kT)*Wevlt*(             - sqr(n_e)*n_i*j_ei));
-//    DBGVAL((3.0/2.0-fi)*kT*Wevlt*n_e*n_i*j_v);
-//    DBGVAL(-3.0/2.0*kT*Wevlt*j_g*n_e*n_i);
-//    DBGVAL(-3.0/2.0*kT*Wevlt*j_p*n_e*n_O2*n);//TODO заменить Wevlt на EV_TO_J()
-//
-//
-//    DBGVAL(S_ee/n_e);
-//    DBGVAL(Q_e/n_e);
-//    DBGVAL(Q_w/n_e);
-//
-//    DBGVAL(Q_ei/n_e);
-//    DBGVAL(Q_e0/n_e);
-//
-//    DBGVAL(u[0]);
-//    DBGVAL(u[1]);
-//    DBGVAL(u[2]);
-//    DBGVAL(u[3]);
-//    DBGVAL(u[4]);
-//
-//    DBGVAL(f[0]);
-//    DBGVAL(f[1]);
-//    DBGVAL(f[2]);
-//    DBGVAL(f[3]);
-//    DBGVAL(f[4]);
-//
-//    DBGVAL(f[0]*dt);
-//    DBGVAL(f[1]*dt);
-//    DBGVAL(f[2]*dt);
-//    DBGVAL(f[3]*dt);
-//    DBGVAL(f[4]*dt);
-//
-//    DBGVAL(dt);
-//
+    DBGVAL(f[0]);
+    DBGVAL(f[1]);
+    DBGVAL(f[2]);
+    DBGVAL(f[3]);
+    DBGVAL(f[4]);
+
+    DBGVAL(f[0]*dt);
+    DBGVAL(f[1]*dt);
+    DBGVAL(f[2]*dt);
+    DBGVAL(f[3]*dt);
+    DBGVAL(f[4]*dt);
+
+    DBGVAL(dt);
+
 //    pressAnyKey();
 
 
@@ -1009,4 +1157,5 @@ void rhs(int *ptrN,double *t,double *u,double *f){
     #endif
 
 
+    return 0;
 }
