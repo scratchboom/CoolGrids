@@ -79,7 +79,7 @@ double k_b=1.38E-23;// Дж/К
 double NE0=ATMOSPHERE_ELECTRON_CONCENTRATION_40KM;
 double ATM_T=200.0; //температура атмоcферы K
 
-void rhs(int *ptrN,double *t,double *u,double *f);
+int rhs(int *ptrN,double *t,double *u,double *f);
 
 
 struct UserData{
@@ -437,12 +437,11 @@ int main(){
 
 
 	        //double sourceHz = H_AMPLITUDE*sin(2.0*M_PI*t/IMPULSE_TIME)*gaussStep(t,IMPULSE_TIME*4,IMPULSE_TIME);
-			//double sourceHz = H_AMPLITUDE*sin(2.0*M_PI*t*chi)*gaussStep(t,1.0/chi,1.0/chi);
-			double sourceHz = t*chi<1.0 ? H_AMPLITUDE*sin(2.0*M_PI*t*chi)*gaussStep(t,1.0/chi,1.0/chi)  :  0;
+			double sourceHz = H_AMPLITUDE*sin(2.0*M_PI*t*chi)*gaussStep(t,1.0/chi,1.0/chi);
 	        //	                sourceHz=H_AMPLITUDE * onePlusCosPulse(DR/(dx*length(PAD_SIZE_Y,PAD_SIZE_Z)) *M_PI) *sin(2.0*M_PI*  (t/IMPULSE_TIME - KY*DY - KZ*DZ)) *gaussStep(t,IMPULSE_TIME*1.5,IMPULSE_TIME);
 
 
-	        Hz(it+0.5, SOURCE_IX) += sourceHz;
+	        Hz(it+0.5, SOURCE_IX) = sourceHz;
 	        cout << "sourceHz=" << sourceHz << endl;
 
 
@@ -733,31 +732,31 @@ int main(){
 
 
 	    	//rhs(&N,)
-//	    	double HD_N = 100.0;
-//	    	double DT_HD = DT/HD_N;
-//
-//
-//	    	double tmpy[5];
-//	    	for(int i=0;i<5;i++)tmpy[i] = y[i];
-//
-//	    	for(int i=0;i<HD_N;i++) {
-//
-//	    		int res = rhs(&N,&time,y,fff);
-//
-//
-//
-//					y[0] += fff[0]*DT_HD;
-//					y[1] += fff[1]*DT_HD;
-//					y[2] += fff[2]*DT_HD;
-//					y[3] += fff[3]*DT_HD;
-//					y[4] += fff[4]*DT_HD;
-//
-//					if(res>0) {
-//						for(int j=0;j<5;j++)y[j] = tmpy[j];
-//						i=0;
-//					}
-//				}
-			dodesol(ipar,&N,&time,&time_end,y,rhs,NULL,&h,&hm,&ep,&tr,dpar,kd,&ierr);
+
+	    	double DT_HD = DT/10.0;
+
+
+	    	double tmpy[5];
+	    	for(int i=0;i<5;i++)tmpy[i] = y[i];
+
+	    	for(int i=0;i<10;i++) {
+
+	    		int res = rhs(&N,&time,y,fff);
+
+
+
+					y[0] += fff[0]*DT_HD;
+					y[1] += fff[1]*DT_HD;
+					y[2] += fff[2]*DT_HD;
+					y[3] += fff[3]*DT_HD;
+					y[4] += fff[4]*DT_HD;
+
+					if(res>0) {
+						for(int j=0;j<5;j++)y[j] = tmpy[j];
+						i=0;
+					}
+				}
+			//dodesol(ipar,&N,&time,&time_end,y,rhs,NULL,&h,&hm,&ep,&tr,dpar,kd,&ierr);
 //			DBGVAL("dodesolved");
 
 
@@ -870,7 +869,7 @@ int main(){
 }
 
 
-void rhs(int *ptrN,double *t,double *u,double *f){
+int rhs(int *ptrN,double *t,double *u,double *f){
 
 	int N = *ptrN;
 
@@ -1043,7 +1042,7 @@ void rhs(int *ptrN,double *t,double *u,double *f){
     if((isnan(f[4])==0) && (isinf(f[4])==0)) acc_f4(f[4]);
     #endif
 
-#if(0)
+#if(1)
 if((isnan(u[0])!=0) || (isinf(u[0])!=0)) return (1);
 if((isnan(u[1])!=0) || (isinf(u[1])!=0)) return (2);
 if((isnan(u[2])!=0) || (isinf(u[2])!=0)) return (3);
@@ -1158,5 +1157,5 @@ if(u[4]<0)return 11;
     #endif
 
 
-    //return 0;
+    return 0;
 }

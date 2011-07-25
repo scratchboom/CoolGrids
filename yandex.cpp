@@ -8,11 +8,11 @@ class Base{
 public:
 
 	Base(){
-			cout << "Base constructor" << endl;
+		cout << "Base constructor" << endl;
 	}
 
-	void method(){
-		cout << "Base" << endl;
+	virtual void method(){
+		cout << "Base method" << endl;
 	}
 
 	virtual ~Base(){
@@ -20,7 +20,7 @@ public:
 	}
 };
 
-class Derived : Base{
+class Derived : public Base{
 public:
 
 	Derived(){
@@ -28,7 +28,7 @@ public:
 	}
 
 	void method(){
-		cout << "Derived" << endl;
+		cout << "Derived method" << endl;
 	}
 
 	virtual ~Derived(){
@@ -39,25 +39,16 @@ public:
 
 int main(){
 
-//	Base base;
-//	Derived derived;
-//
-//	base.method();
-//	derived.method();
-//
-//	vector<Base> values;
-	//values.push_back(base);
-	//values.push_back(derived);
+	Base base;
+	Derived derived;
 
+	Base* ref = &derived;
 
-	//Base *b=new Base();
-	//delete b;
+	ref->method();
 
-//	Derived *d=new Derived();
-//	delete d;
+	ref = &base;
 
-	Derived *dArr=new Derived[5];
-	delete[] dArr;
+	ref->method();
 
 
 	return 0;
