@@ -113,8 +113,17 @@ int main(int argc, char* argv[]) {
 
 	calcDims(Nx,Ny,Nz,n,nx,ny,nz);
 
-	/*
-	 for(int i=0;i<argc;i++)cout << argv[i] << endl;
+
+
+
+
+
+
+
+
+
+
+	for(int i=0;i<argc;i++)cout << argv[i] << endl;
 
 	 MpiEnvironment env(argc, argv);
 	 MpiCommunicator world;
@@ -128,7 +137,22 @@ int main(int argc, char* argv[]) {
 	 g.build();
 
 	 }
-	 */
 
 	return 0;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

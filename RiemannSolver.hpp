@@ -1,5 +1,7 @@
 #pragma once
 
+const int MAX_ITER_COUNT = 100;
+
 typedef double Real;
 
 #define Real(a) ((Real)a)
@@ -85,7 +87,7 @@ Real2 NewtonVelocity(Real PressureLeft, Real VelocityLeft, Real DensityLeft,
 					Pressure(Result), false);
 	while ((fabs(IterateVelocityLeft - IterateVelocityRight) > Epsilon * (fabs(
 			IterateVelocityLeft) - fabs(IterateVelocityRight)))
-			&& (CountIterations < 1000)) {
+			&& (CountIterations < MAX_ITER_COUNT)) {
 		Real DerivatLeft = AdiabatVelocityDerivative(PressureLeft,
 				VelocityLeft, DensityLeft, SoundLeft, GammaLeft,
 				Pressure(Result), true);
@@ -106,7 +108,7 @@ Real2 NewtonVelocity(Real PressureLeft, Real VelocityLeft, Real DensityLeft,
 
 
     #ifndef CUDA
-	if (CountIterations >= 1000)
+	if (CountIterations >= MAX_ITER_COUNT)
 		Velocity(Result) = Real(CountIterations / 0);
     else
 	#endif

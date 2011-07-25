@@ -2,147 +2,54 @@
 
 class CsvTableSaver{
 private:
+	std::stringstream captionsLine;
 	std::stringstream content;
+	std::set<std::string> captionsSet;
+	int count;
+	int currCount;
+	bool firstInLine;
 	bool captionsAdded;
 public:
 
 	CsvTableSaver(){
+		count = 0;
+		currCount = 0;
 		captionsAdded = false;
 	}
 
-	void addRow(const std::string& cap1,double val1){
-		if(!captionsAdded){
-			content << "\"" << cap1 << "\"";
-			captionsAdded = true;
-			content << std::endl;
-		}
+	void addRow(const std::string& cap,double val){
 
-		content << val1 ;
-		content << std::endl;
-	}
-
-	void addRow(const std::string& cap1, double val1,
-			    const std::string& cap2, double val2) {
 		if (!captionsAdded) {
-			content << "\"" << cap1 <<  "\"";
-			content << ",";
-			content << "\"" << cap2 <<  "\"";
-			content << std::endl;
-			captionsAdded = true;
+
+			bool found = captionsSet.find(cap)!=captionsSet.end();
+			if (!found) {
+
+				if (currCount != 0)
+					captionsLine << ",";
+
+				captionsLine << '"' << cap << '"';
+				captionsSet.insert(cap);
+			}else {
+				captionsAdded = true;
+				count = captionsSet.size();
+			}
 		}
 
-		content << val1;
-		content << ",";
-
-		content << val2;
-
-		content << std::endl;
-	}
-
-	void addRow(const std::string& cap1, double val1,
-			    const std::string& cap2, double val2,
-			    const std::string& cap3, double val3) {
-		if (!captionsAdded) {
-			content << "\"" << cap1 << "\"";
-			content << ",";
-			content << "\"" << cap2 << "\"";
-			content << ",";
-			content << "\"" << cap3 << "\"";
+		if (captionsAdded && currCount == count) {
 			content << std::endl;
-			captionsAdded = true;
+			currCount = 0;
 		}
 
-		content << val1;
-		content << ",";
-		content << val2;
-		content << ",";
-		content << val3;
-
-		content << std::endl;
+		if(currCount!=0)content  << ",";
+		content << val;
+		currCount++;
 	}
 
-	void addRow(const std::string& cap1, double val1,
-			    const std::string& cap2, double val2,
-			    const std::string& cap3, double val3,
-			    const std::string& cap4, double val4) {
-		if (!captionsAdded) {
-			content << "\"" << cap1 << "\"";
-			content << ",";
-			content << "\"" << cap2 << "\"";
-			content << ",";
-			content << "\"" << cap3 << "\"";
-			content << ",";
-			content << "\"" << cap4 << "\"";
-			content << std::endl;
-			captionsAdded = true;
-		}
-
-		content << val1;
-		content << ",";
-		content << val2;
-		content << ",";
-		content << val3;
-		content << ",";
-		content << val4;
-
-		content << std::endl;
-	}
-
-	void addRow(const std::string& cap1, double val1,
-			    const std::string& cap2, double val2,
-			    const std::string& cap3, double val3,
-			    const std::string& cap4, double val4,
-			    const std::string& cap5, double val5) {
-		if (!captionsAdded) {
-			content << "\"" << cap1 << "\"";
-			content << ",";
-			content << "\"" << cap2 << "\"";
-			content << ",";
-			content << "\"" << cap3 << "\"";
-			content << ",";
-			content << "\"" << cap4 << "\"";
-			content << ",";
-			content << "\"" << cap5 << "\"";
-			content << std::endl;
-			captionsAdded = true;
-		}
-
-		content << val1;
-		content << ",";
-		content << val2;
-		content << ",";
-		content << val3;
-		content << ",";
-		content << val4;
-		content << ",";
-		content << val5;
-
-		content << std::endl;
-	}
-
-#define ADD_ROW(expr1) addRow(#expr1,expr1)
-
-#define ADD_ROW(expr1,expr2) addRow(#expr1,expr1,\
-		                            #expr2,expr2)
-
-#define ADD_ROW(expr1,expr2,expr3) addRow(#expr1,expr1,\
-		                                  #expr2,expr2,\
-		                                  #expr3,expr3)
-
-#define ADD_ROW(expr1,expr2,expr3,expr4) addRow(#expr1,expr1,\
-		                                        #expr2,expr2,\
-		                                        #expr3,expr3,\
-		                                        #expr4,expr4)
-
-#define ADD_ROW(expr1,expr2,expr3,expr4,expr5) addRow(#expr1,expr1,\
-		                                              #expr2,expr2,\
-		                                              #expr3,expr3,\
-		                                              #expr4,expr4,\
-		                                              #expr5,expr5)
-
+#define ADD_ROW(val) addRow(#val,val)
 
 	void save(const std::string& filename) {
 		std::ofstream out(filename.c_str());
+		out << captionsLine.str() << std::endl;
 		out << content.str();
 		out.close();
 	}

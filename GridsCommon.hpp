@@ -9,6 +9,8 @@
 #include <cmath>
 #include <cstdlib>
 
+#include <set>
+
 #include <sys/time.h>
 #include <stdint.h>
 
@@ -66,6 +68,7 @@
 #include "GnuPlotSaver1D.hpp"
 #include "GnuPlotSaver2D.hpp"
 #include "CsvSaver.hpp"
+#include "CsvTableSaver.hpp"
 #include "BmpSaver.hpp"
 #include "VtiSaver.hpp"
 #include "CImgSaver2D.hpp"

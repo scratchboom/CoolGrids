@@ -76,6 +76,7 @@ c	call vvodconstprch(J)												!vvod const pravoj chasti iz fajla bconst
 	REWIND 45
 	OPEN(UNIT=46,FILE='bconist.cfg',STATUS='UNKNOWN',FORM='FORMATTED')
 	REWIND 46
+	WRITE(*,*)'ANAB'
 CC	Vvod constant iz fajla BCONST
 	WRITE(*,*)'Skorost sveta (m/s) cs=?'
 	READ(42,*)cs
@@ -1535,12 +1536,12 @@ C-------------------------------------------------------------------------
       IF(E < Emin )E=Emin
       if(vak_case) then
 
-!  Если газ равномерно расширяется,
+!  пїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ,
 !   n~= n0*(1-DV*t/h) 
 !                tau
 !   rho~n
 !
-!  Пусть адиабатически, тогда
+!  пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅ
 ! 
 !   p~rho**gamma
 !  

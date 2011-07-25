@@ -84,6 +84,10 @@
 	<target name="build VtkImageDataWriter">
 		<icc mainfile="VtkImageDataWriter" />
 	</target>
+	
+	<target name="build VtkDipoleField">
+		<icc mainfile="VtkDipoleField" />
+	</target>
 
 	<target name="build MovingChargeField">
 		<icc mainfile="MovingChargeField" />
@@ -149,6 +153,10 @@
 	<target name="scalaxy list projects">
 		<curl username="scratchboom" password="megapass" url="https://www.scalaxy.ru/api/projects.json" data="ololo"/>
 	</target>
+	
+	<target name="test">
+			<echo message="err this is mega err"/>
+    </target>
 
 
 </project>

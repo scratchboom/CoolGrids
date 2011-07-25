@@ -25,7 +25,8 @@ const double ELECTRON_CHARGE = 1.602E-19;// Заряд электрона, [Кл
 
 //параметры атмосферы на высоте 40км
 const double ATMOSPHERE_O2_CONCENTRATION_40KM = 1.7E16         * 1E6;// [1/м^3]
-const double ATMOSPHERE_ELECTRON_CONCENTRATION_40KM = 3.16E4   * 1E6;// [1/м^3]
+//const double ATMOSPHERE_ELECTRON_CONCENTRATION_40KM = 3.16E4   * 1E6;// [1/м^3] (astronet.ru)
+const double ATMOSPHERE_ELECTRON_CONCENTRATION_40KM = 2.8E7;// [1/м^3] (trifinov rf-plasma)
 const double ATMOSPHERE_TEMPERATURE_40KM = 250.0;// [К]
 const double ATMOSPHERE_DENSITY_40KM = 0.003851;// [кг/м^3]
 
@@ -105,12 +106,14 @@ Grid1D<double> grid_e_Ex_m("-e*E_x/m");
 Grid1D<double> grid_e_MU_MU0_m_Vz_Hy("e*MU*MU0/m*V_z*H_y");
 Grid1D<double> grid_e_MU_MU0_m_Vy_Hz("-e*MU*MU0/m*V_y*H_z");
 
-
+CsvTableSaver csv;
+CsvTableSaver csvU;
+CsvTableSaver csvF;
 
 //Grid1D<double> gridM_N_V_ei_Vx;
 //Grid1D<double> gridMNV_e0_Vx;
 
-int NT = 10000;
+int NT = 1000;
 double dt = 1E-16;
 
 //int NT = 100;
@@ -200,33 +203,33 @@ int main(){
 	gnuPlotSaverN.setLineColor("#FF0000");
 	//gnuPlotSaverN.setValueRange(-2.0*H_AMPLITUDE , 2.0*H_AMPLITUDE)
 	gnuPlotSaverN.setAutoScale();
-	gnuPlotSaverN.setSize(600,250);
+	gnuPlotSaverN.setSize(1200,250);
 
 	GnuPlotSaver1D gnuPlotSaverVx;
 	gnuPlotSaverVx.setLineColor("#FF0000");
 		//gnuPlotSaverN.setValueRange(-2.0*H_AMPLITUDE , 2.0*H_AMPLITUDE)
 	gnuPlotSaverVx.setAutoScale();
-	gnuPlotSaverVx.setSize(600,250);
+	gnuPlotSaverVx.setSize(1200,250);
 
 	DBGLN;
 	GnuPlotSaver1D gnuPlotSaverVy;
 	gnuPlotSaverVy.setLineColor("#FF0000");
 		//gnuPlotSaverN.setValueRange(-2.0*H_AMPLITUDE , 2.0*H_AMPLITUDE)
 	gnuPlotSaverVy.setAutoScale();
-	gnuPlotSaverVy.setSize(600,250);
+	gnuPlotSaverVy.setSize(1200,250);
 
 
 	GnuPlotSaver1D gnuPlotSaverVz;
 	gnuPlotSaverVz.setLineColor("#FF0000");
 	//gnuPlotSaverN.setValueRange(-2.0*H_AMPLITUDE , 2.0*H_AMPLITUDE)
 	gnuPlotSaverVz.setAutoScale();
-	gnuPlotSaverVz.setSize(600, 250);
+	gnuPlotSaverVz.setSize(1200,250);
 
 	GnuPlotSaver1D gnuPlotSaverT;
 	gnuPlotSaverT.setLineColor("#FF0000");
 	//gnuPlotSaverN.setValueRange(-2.0*H_AMPLITUDE , 2.0*H_AMPLITUDE)
 	gnuPlotSaverT.setAutoScale();
-	gnuPlotSaverT.setSize(600, 250);
+	gnuPlotSaverT.setSize(1200,250);
 	DBGLN;
 
 
@@ -276,7 +279,7 @@ int main(){
 	gnuPlotSaverAuto.setLineColor("#FF0000");
 	//gnuPlotSaverN.setValueRange(-2.0*H_AMPLITUDE , 2.0*H_AMPLITUDE)
 	gnuPlotSaverAuto.setAutoScale();
-	gnuPlotSaverAuto.setSize(1000, 250);
+	gnuPlotSaverAuto.setSize(1200, 250);
 	DBGLN;
 
 
@@ -339,8 +342,10 @@ int main(){
 		t = i *dt;
 
 		//euler
-		//rhs2(&ud,&N,&t,u,f,i);
-		//for(int j=0;j<5;j++) u[j]+=f[j]*dt;
+		/*
+		rhs(&ud,&N,&t,u,f,i);
+		for(int j=0;j<5;j++) u[j]+=f[j]*dt;
+		*/
 
 
 
@@ -363,6 +368,20 @@ int main(){
 		rhs(&ud, &N, &tt, y3, k4, i);
 		for (int j = 0; j < 5; j++)	u[j] = y0[j] + (k1[j] + 2.0*k2[j] + 2.0*k3[j] + k4[j]) * dt / 6.0;
 
+
+		csvU.addRow("time" , t);
+
+		csvU.ADD_ROW(u[0]);
+		csvU.ADD_ROW(u[1]);
+		csvU.ADD_ROW(u[2]);
+		csvU.ADD_ROW(u[3]);
+		csvU.ADD_ROW(u[4]);
+
+		csvU.ADD_ROW(f[0]);
+		csvU.ADD_ROW(f[1]);
+		csvU.ADD_ROW(f[2]);
+		csvU.ADD_ROW(f[3]);
+		csvU.ADD_ROW(f[4]);
 
 
 
@@ -408,6 +427,8 @@ int main(){
     DBGVAL(u[4]);
     DBGVAL(J_TO_EV(u[4]));
 
+    csv.save("data.csv");
+    csvU.save("u.csv");
 	return 0;
 }
 
@@ -485,7 +506,7 @@ void rhs(UserData* userdata , int *ptrN,double *t,double *u,double *f,int i){
 
     const double sigma_e0 = 12.47 * PI_A0_SQR * (0.4 + 0.84*WEt/(0.5 + WEt));// [м^2]
 
-    const double v_ei = 16.0*sqrt(M_PI)/3.0 * quad( COULUMB_TO_CGS(cze) ) * L * n_i * sqr(Z)/sqrt(m_e)/pow(2.0*kT,3.0/2.0);
+    const double v_ei = 16.0*sqrt(M_PI)/3.0 * quad( COULUMB_TO_CGS(cze) ) * L * (n_i*1E-6) * sqr(Z)/sqrt(KG_TO_G(m_e))/pow(2.0*kT,3.0/2.0);//TODO перевести всё в CGS!!! //was ~1E-83
     const double v_e0 = 8.0*sigma_e0/3.0/sqrt(M_PI)*sqrt(2.0* EV_TO_J(kT)/m_e)*n_0;
 
 
@@ -524,12 +545,46 @@ void rhs(UserData* userdata , int *ptrN,double *t,double *u,double *f,int i){
     f[4] = (S_ee + Q_e + Q_w)/n_e;
 
 
-
+/*
     gridM_N_V_ei_Vx(i) = -(v_ei     ) ;//*V_x;
 	gridM_N_V_e0_Vx(i) = -(     v_e0);//*V_x;
 	grid_e_Ex_m(i) = -e*E_y/m;
 	grid_e_MU_MU0_m_Vz_Hy(i) = e*MU*MU0/m*V_z*H_y;
 	grid_e_MU_MU0_m_Vy_Hz(i) = -e*MU*MU0/m*V_y*H_z;
+*/
+
+    csv.addRow("time",*t);
+    //csv.ADD_ROW(-(v_ei     )*V_x);
+    //csv.ADD_ROW(-(     v_e0)*V_x);
+    //csv.ADD_ROW(-e*E_y/m );
+    //csv.ADD_ROW(+ e*MU*MU0/m*V_z*H_y);
+    //csv.ADD_ROW(- e*MU*MU0/m*V_y*H_z);
+    //csv.ADD_ROW(V_x);
+    //csv.ADD_ROW(V_y);
+    csv.ADD_ROW(n_i);
+    csv.ADD_ROW(n_0);
+    csv.ADD_ROW(n);
+    csv.ADD_ROW(n_e);
+
+    csv.ADD_ROW(j_0e);
+    csv.ADD_ROW(j_g);
+    csv.ADD_ROW(j_v);
+    csv.ADD_ROW(j_p);
+    csv.ADD_ROW(j_ei);
+
+    csv.ADD_ROW(sgm);
+    csv.ADD_ROW(sigma_e0);
+    csv.ADD_ROW(f_);
+
+    csv.ADD_ROW(v_ei);
+    csv.ADD_ROW(v_e0);
+    //csv.ADD_ROW(v_eO2);
+
+    csv.ADD_ROW(S_ee);
+    csv.ADD_ROW(Q_e);
+    csv.ADD_ROW(Q_w);
+
+
 
 
 

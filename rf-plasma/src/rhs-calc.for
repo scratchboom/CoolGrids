@@ -238,7 +238,7 @@ c$$$  END DO
 c$$$  END DO
 #endif
       DO J = 1,N
-         C(J) = C(J) * CDEXP(EVAL(J)*DT)
+         C(J) = C(J) * CDEXP(EVAL(J)*DT)        !where is C set before? possible bug here!!!
       END DO
       DO I = 1,N
          X1(I) = 0
@@ -378,7 +378,7 @@ C===================================================
       Wsigmae0 = 12.47*0.88d-20*(0.4d0+(0.84d0*WEt)/(0.5d0+WEt))
 
 
-      Wf = 1.5d0 - 0.64d0 + 0.11*Dlog(14.86d0*3d0/2d0/WEt)/2.3026d0     #видимо тут ошибка (должно быть 1.5 - 0.64 - 0.11*...)
+      Wf = 1.5d0 - 0.64d0 - 0.11*Dlog(14.86d0*3d0/2d0/WEt)/2.3026d0     !possible bug here (should be 1.5 - 0.64 - 0.11*...)
 
 #ifdef DEBUG_OUTPUT
       if (WEt.lt.0d0) then
@@ -495,6 +495,13 @@ c     1     WSee_Et*WEt,WSee_1
       write(*,*) 'Se=', WSe
       write(*,*) 'WSee_1 + WQe_1 + WQw_1=', WSee_1 + WQe_1 + WQw_1
 
+      WSee = Wne*(WSee_ne + WQe_ne + WQw_ne)
+     1   +  Wvz*(WSee_vz + WQe_vz + WQw_vz)
+     2   +  Wvx*(WSee_vx + WQe_vx + WQw_vx)
+     3   +  WEt*(WSee_Et + WQe_Et + WQw_Et)
+     4   +  WSee_1 + WQe_1 + WQw_1
+
+      write(*,*) 'WSee', WSee
 #endif
 
       D(1,1) = Wj0e*Wn0-(Wjg+Wjv)*Wni-Wjp*Wn*Wno2-Wne*Wni*Wjei
@@ -573,6 +580,22 @@ c      CALL EULERSOLVER(D,B,DT,X0,X1)
             F(I) = F(I) + X0(J)*D(I,J)
          END DO
       END DO
+#ifdef DEBUG_OUTPUT
+      write(*,*) 'F(1) = ' , F(1) , N , N*DT , m
+      write(*,*) 'F(2) = ' , F(2) , N , N*DT , m
+      write(*,*) 'F(3) = ' , F(3) , N , N*DT , m
+      write(*,*) 'F(4) = ' , F(4) , N , N*DT , m
+      write(*,*) 'F(5) = ' , F(5) , N , N*DT , m
+      write(*,*) 'F(6) = ' , F(6) , N , N*DT , m
+
+      write(*,*) 'FP(1) = ' , FP(1)
+      write(*,*) 'FP(2) = ' , FP(2)
+      write(*,*) 'FP(3) = ' , FP(3)
+      write(*,*) 'FP(4) = ' , FP(4)
+      write(*,*) 'FP(5) = ' , FP(5)
+      write(*,*) 'FP(6) = ' , FP(6)
+#endif
+
 	IF (N .LE. 1) THEN
 		CALL EULERSOLVER(D,B,DT,X0,X1)
 	ELSE
