@@ -79,7 +79,7 @@ double k_b=1.38E-23;// Дж/К
 double NE0=ATMOSPHERE_ELECTRON_CONCENTRATION_40KM;
 double ATM_T=200.0; //температура атмоcферы K
 
-int rhs(int *ptrN,double *t,double *u,double *f);
+void rhs(int *ptrN,double *t,double *u,double *f);
 
 
 struct UserData{
@@ -633,6 +633,8 @@ int main(){
 		//TODO: change boundary conditions to more corect
 		//TODO: where to place boundary conditions before or after calculation?
 		//transparent BC
+
+
 		Fx[it].iterateBorderMinX(GRID1D_ITERATOR {
 			Fx(it,ix)=Fx(it,ix+1);
 		});
@@ -733,13 +735,15 @@ int main(){
 
 	    	//rhs(&N,)
 
-	    	double DT_HD = DT/10.0;
+	    	/*
+	    	double HD_N = 10.0;
+	    	double DT_HD = DT/HD_N;
 
 
 	    	double tmpy[5];
 	    	for(int i=0;i<5;i++)tmpy[i] = y[i];
 
-	    	for(int i=0;i<10;i++) {
+	    	for(int i=0;i<HD_N;i++) {
 
 	    		int res = rhs(&N,&time,y,fff);
 
@@ -756,7 +760,8 @@ int main(){
 						i=0;
 					}
 				}
-			//dodesol(ipar,&N,&time,&time_end,y,rhs,NULL,&h,&hm,&ep,&tr,dpar,kd,&ierr);
+				*/
+			dodesol(ipar,&N,&time,&time_end,y,rhs,NULL,&h,&hm,&ep,&tr,dpar,kd,&ierr);
 //			DBGVAL("dodesolved");
 
 
@@ -869,7 +874,7 @@ int main(){
 }
 
 
-int rhs(int *ptrN,double *t,double *u,double *f){
+void rhs(int *ptrN,double *t,double *u,double *f){
 
 	int N = *ptrN;
 
@@ -1042,7 +1047,7 @@ int rhs(int *ptrN,double *t,double *u,double *f){
     if((isnan(f[4])==0) && (isinf(f[4])==0)) acc_f4(f[4]);
     #endif
 
-#if(1)
+#if(0)
 if((isnan(u[0])!=0) || (isinf(u[0])!=0)) return (1);
 if((isnan(u[1])!=0) || (isinf(u[1])!=0)) return (2);
 if((isnan(u[2])!=0) || (isinf(u[2])!=0)) return (3);
@@ -1157,5 +1162,5 @@ if(u[4]<0)return 11;
     #endif
 
 
-    return 0;
+//    return 0;
 }
