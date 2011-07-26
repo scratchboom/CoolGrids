@@ -437,7 +437,9 @@ int main(){
 
 
 	        //double sourceHz = H_AMPLITUDE*sin(2.0*M_PI*t/IMPULSE_TIME)*gaussStep(t,IMPULSE_TIME*4,IMPULSE_TIME);
-			double sourceHz = H_AMPLITUDE*sin(2.0*M_PI*t*chi)*gaussStep(t,1.0/chi,1.0/chi);
+			//double sourceHz = H_AMPLITUDE*sin(2.0*M_PI*t*chi)*gaussStep(t,1.0/chi,1.0/chi);//good
+			//double sourceHz = H_AMPLITUDE*gaussStep(t,2.0/chi,1.0/chi);//nans
+			double sourceHz = t*chi<1.0 ? H_AMPLITUDE*sin(2.0*M_PI*t*chi) : 0;
 	        //	                sourceHz=H_AMPLITUDE * onePlusCosPulse(DR/(dx*length(PAD_SIZE_Y,PAD_SIZE_Z)) *M_PI) *sin(2.0*M_PI*  (t/IMPULSE_TIME - KY*DY - KZ*DZ)) *gaussStep(t,IMPULSE_TIME*1.5,IMPULSE_TIME);
 
 
@@ -634,14 +636,25 @@ int main(){
 		//TODO: where to place boundary conditions before or after calculation?
 		//transparent BC
 
+        //oldflow
+//		Fx[it].iterateBorderMinX(GRID1D_ITERATOR {
+//			Fx(it,ix)=Fx(it,ix+1);
+//		});
+//
+//		Fx[it].iterateBorderMaxX(GRID1D_ITERATOR {
+//			Fx(it,ix)=Fx(it,ix-1);
+//		});
+
 
 		Fx[it].iterateBorderMinX(GRID1D_ITERATOR {
-			Fx(it,ix)=Fx(it,ix+1);
+			Fx(it,ix)=HdVec3D::toFlowX(U(it,ix+0.5));
 		});
 
 		Fx[it].iterateBorderMaxX(GRID1D_ITERATOR {
-			Fx(it,ix)=Fx(it,ix-1);
+			Fx(it,ix)= -HdVec3D::toFlowX(U(it,ix-0.5));
 		});
+
+
 
 
 		cout << "dissipation step" << endl;
@@ -735,8 +748,8 @@ int main(){
 
 	    	//rhs(&N,)
 
-	    	/*
-	    	double HD_N = 10.0;
+
+	    	double HD_N = 100.0;
 	    	double DT_HD = DT/HD_N;
 
 
@@ -745,8 +758,7 @@ int main(){
 
 	    	for(int i=0;i<HD_N;i++) {
 
-	    		int res = rhs(&N,&time,y,fff);
-
+	    		/*int res = */rhs(&N,&time,y,fff);
 
 
 					y[0] += fff[0]*DT_HD;
@@ -755,13 +767,15 @@ int main(){
 					y[3] += fff[3]*DT_HD;
 					y[4] += fff[4]*DT_HD;
 
+					/*
 					if(res>0) {
 						for(int j=0;j<5;j++)y[j] = tmpy[j];
 						i=0;
-					}
+					}*/
+
 				}
-				*/
-			dodesol(ipar,&N,&time,&time_end,y,rhs,NULL,&h,&hm,&ep,&tr,dpar,kd,&ierr);
+
+			//dodesol(ipar,&N,&time,&time_end,y,rhs,NULL,&h,&hm,&ep,&tr,dpar,kd,&ierr);
 //			DBGVAL("dodesolved");
 
 
@@ -813,8 +827,8 @@ int main(){
 		//pressAnyKey();
 
 
-/*
-	    if (isEveryNth(it, 10)) {
+
+	    if (isEveryNth(it, 100)) {
 
 	    	gnuPlotSaverH.save(Hx[it + 0.5], frame("Hx_", it, "plot"),GRID1D_CALCULATOR{
 	    		return Hx(it + 0.5,ix);
@@ -840,7 +854,7 @@ int main(){
 	    	    return Ez(it,ix);
 	        });
 		}
-*/
+
 
 	    if (isEveryNth(it, 100)) {
 	       	gnuPlotSaverNe.save(U[it], frame("Ne_", it, "plot"),GRID1D_CALCULATOR{
@@ -850,19 +864,20 @@ int main(){
 	       	gnuPlotSaverTe.save(U[it], frame("Te_", it, "plot"),GRID1D_CALCULATOR{
 	       		return log(J_TO_EV(HdVec3D::internalEnergyPerMassUnit(U(it,ix)) * cme));
 	        });
-/*
+
 	       	gnuPlotSaverV.save(U[it], frame("Vx_", it, "plot"),GRID1D_CALCULATOR{
 	       	    return HdVec3D::velocityX(U(it,ix));
 	        });
 
+	       	/*
 	       	gnuPlotSaverV.save(U[it], frame("Vy", it, "plot"),GRID1D_CALCULATOR{
 	       	    return HdVec3D::velocityY(U(it,ix));
 	       	});
 
 	       	gnuPlotSaverV.save(U[it], frame("Vz", it, "plot"),GRID1D_CALCULATOR{
 	       	    return HdVec3D::velocityZ(U(it,ix));
-	        });
-*/
+	        });*/
+
 	    }
 
 		}
