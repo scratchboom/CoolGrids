@@ -439,9 +439,13 @@ int main(){
 
 
 	        //double sourceHz = H_AMPLITUDE*sin(2.0*M_PI*t/IMPULSE_TIME)*gaussStep(t,IMPULSE_TIME*4,IMPULSE_TIME);
+	        //double sourceHz = t/IMPULSE_TIME<1.0 ? H_AMPLITUDE*(1.0-cos(2.0*M_PI*t/IMPULSE_TIME)) : 0;
+			double sourceHz = H_AMPLITUDE*gauss(t,2.0*IMPULSE_TIME , IMPULSE_TIME);
+
+
 			//double sourceHz = H_AMPLITUDE*sin(2.0*M_PI*t*chi)*gaussStep(t,1.0/chi,1.0/chi);//good
 			//double sourceHz = H_AMPLITUDE*gaussStep(t,2.0/chi,1.0/chi);//nans
-			double sourceHz = t*chi<1.0 ? H_AMPLITUDE*sin(2.0*M_PI*t*chi) : 0;
+			//double sourceHz = t*chi<1.0 ? H_AMPLITUDE*sin(2.0*M_PI*t*chi) : 0;
 	        //	                sourceHz=H_AMPLITUDE * onePlusCosPulse(DR/(dx*length(PAD_SIZE_Y,PAD_SIZE_Z)) *M_PI) *sin(2.0*M_PI*  (t/IMPULSE_TIME - KY*DY - KZ*DZ)) *gaussStep(t,IMPULSE_TIME*1.5,IMPULSE_TIME);
 
 

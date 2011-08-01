@@ -31,6 +31,7 @@ double quad(double x){
 
 
 const double SQRT_LN_2=0.8325546111576977563531646;
+//http://www4d.wolframalpha.com/Calculate/MSP/MSP475119ge38fab96e21ac0000571gibbhh4e7aa5b?MSPStoreType=image/gif&s=49&w=401&h=200&cdf=Coordinates&cdf=Tooltips
 double gauss(double x,double x0,double w){
     return exp(-sqr((x-x0)*2.0*SQRT_LN_2/w));
 }
