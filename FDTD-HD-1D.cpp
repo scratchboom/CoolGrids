@@ -2,6 +2,8 @@
 #include "GridsCommon.hpp"
 #include "intel_ode.h"
 
+//#define RHS_ENABLE FALSE
+
 using namespace std;
 
 
@@ -620,6 +622,7 @@ int main(){
 	                );
 	        });
 
+#ifdef RHS_ENABLE
 
 	    cout << "HD step" << endl;
 
@@ -826,7 +829,7 @@ int main(){
 
 		//pressAnyKey();
 
-
+#endif
 
 	    if (isEveryNth(it, 100)) {
 
