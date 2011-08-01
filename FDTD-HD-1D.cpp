@@ -163,7 +163,7 @@ int main(){
     double SOURCE_IX = (int)(Nx*0.1)+0.5;
 
 
-    double IMPULSE_FREQ = 3e8;
+    double IMPULSE_FREQ = chi;
     double IMPULSE_TIME = 1.0/IMPULSE_FREQ;
     double IMPULSE_LENGTH = C*IMPULSE_TIME;
 
@@ -433,8 +433,6 @@ int main(){
 
 	        cout << "source\n" << endl;
 			double t = it * DT;
-
-			double chi = 4E9;
 
 
 
