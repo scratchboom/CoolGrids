@@ -2,7 +2,7 @@
 #include "GridsCommon.hpp"
 #include "intel_ode.h"
 
-//#define RHS_ENABLE FALSE
+#define RHS_ENABLE 1
 
 using namespace std;
 
@@ -31,7 +31,7 @@ const double ELECTRON_CHARGE = 1.602E-19;// Заряд электрона, [Кл
 
 //параметры атмосферы на высоте 40км
 const double ATMOSPHERE_O2_CONCENTRATION_40KM = 1.7E16         * 1E6;// [1/м^3]
-//const double ATMOSPHERE_ELECTRON_CONCENTRATION_40KM = 3.16E4   * 1E6;// [1/м^3]
+//const double ATMOSPHERE_ELECTRON_CONCENTRATION_40KM = 3.16E4   * 1E6;// [1/м^3] // astronet
 const double ATMOSPHERE_ELECTRON_CONCENTRATION_40KM = 2.8E7;// [1/м^3] (trifinov rf-plasma)
 const double ATMOSPHERE_TEMPERATURE_40KM = 250.0;// [К]
 const double ATMOSPHERE_DENSITY_40KM = 0.003851;// [кг/м^3]
@@ -85,19 +85,18 @@ void rhs(int *ptrN,double *t,double *u,double *f);
 
 
 struct UserData{
-	double E_x;
-	double E_y;
-	double E_z;
+    double E_x;
+    double E_y;
+    double E_z;
 
-	double H_x;
-	double H_y;
-	double H_z;
+    double H_x;
+    double H_y;
+    double H_z;
 
-	double V_SQR;
+    double V_SQR;
 };
 
-UserData* G_userdata;
-int G_i;
+UserData G_userdata;
 
 
 /*
@@ -119,40 +118,40 @@ double dt;
 int main(){
 
 
-	G_userdata = new UserData();
 
-//	accumulator acc;
-//	acc(10.0);
-//	acc(8.0);
-//	acc(13.0);
-//	acc(9.0);
-//	acc(11.0);
-//	acc(14.0);
-//	acc(6.0);
-//	acc(4.0);
-//	acc(12.0);
-//	acc(7.0);
-//	acc(5.0);
+
+//    accumulator acc;
+//    acc(10.0);
+//    acc(8.0);
+//    acc(13.0);
+//    acc(9.0);
+//    acc(11.0);
+//    acc(14.0);
+//    acc(6.0);
+//    acc(4.0);
+//    acc(12.0);
+//    acc(7.0);
+//    acc(5.0);
 //
-//	printStats(acc);
+//    printStats(acc);
 
 
-	const int ODE_SOLVE_IPAR_SIZE=128;
-	int ipar[ODE_SOLVE_IPAR_SIZE];
-	for(int i=0;i<ODE_SOLVE_IPAR_SIZE;i++)ipar[i]=0;
-	ipar[0] = 0;
-	ipar[1] = 0;//scheme auto-choose
-	ipar[2] = 0;//0 - exit at the end ; 1 - exit after every step
-	ipar[3] = 0;//0 - autocalc Jacobi matrix; 1 - user-defined Jacobi matrix
-	ipar[4] = 0;//0 - don't freeze Jacobi matrix; 1 - freeze Jacobi matrix
-	ipar[5] = 0;
-	ipar[6] = 0;
-	ipar[7] = 0;//TODO move into separate function
+    const int ODE_SOLVE_IPAR_SIZE=128;
+    int ipar[ODE_SOLVE_IPAR_SIZE];
+    for(int i=0;i<ODE_SOLVE_IPAR_SIZE;i++)ipar[i]=0;
+    ipar[0] = 0;
+    ipar[1] = 0;//scheme auto-choose
+    ipar[2] = 0;//0 - exit at the end ; 1 - exit after every step
+    ipar[3] = 0;//0 - autocalc Jacobi matrix; 1 - user-defined Jacobi matrix
+    ipar[4] = 0;//0 - don't freeze Jacobi matrix; 1 - freeze Jacobi matrix
+    ipar[5] = 0;
+    ipar[6] = 0;
+    ipar[7] = 0;//TODO move into separate function
 
-	omp_set_num_threads(1);
+    omp_set_num_threads(1);
 
-	VtiSaver3D vtiSaver;
-	CImgSaver2D cimgSaver;
+    VtiSaver3D vtiSaver;
+    CImgSaver2D cimgSaver;
 
 
 
@@ -170,48 +169,48 @@ int main(){
     double E_AMPLITUDE=1e7;
     double H_AMPLITUDE=E_AMPLITUDE/VACUUM_WAVE_RESISTIVITY;
 
-	cimgSaver.setValueRange(-2.0*H_AMPLITUDE , 2.0*H_AMPLITUDE);
+    cimgSaver.setValueRange(-2.0*H_AMPLITUDE , 2.0*H_AMPLITUDE);
 
-	GnuPlotSaver1D gnuPlotSaverH;
-	gnuPlotSaverH.setLineColor("#FF0000");
-	gnuPlotSaverH.setValueRange(-2.0*H_AMPLITUDE , 2.0*H_AMPLITUDE);
-	gnuPlotSaverH.setSize(1200,400);
+    GnuPlotSaver1D gnuPlotSaverH;
+    gnuPlotSaverH.setLineColor("#FF0000");
+    gnuPlotSaverH.setValueRange(-2.0*H_AMPLITUDE , 2.0*H_AMPLITUDE);
+    gnuPlotSaverH.setSize(1200,400);
 
-	GnuPlotSaver1D gnuPlotSaverE;
-	gnuPlotSaverE.setLineColor("#0000FF");
-	gnuPlotSaverE.setValueRange(-2.0*E_AMPLITUDE , 2.0*E_AMPLITUDE);
-	gnuPlotSaverE.setSize(1200,400);
+    GnuPlotSaver1D gnuPlotSaverE;
+    gnuPlotSaverE.setLineColor("#0000FF");
+    gnuPlotSaverE.setValueRange(-2.0*E_AMPLITUDE , 2.0*E_AMPLITUDE);
+    gnuPlotSaverE.setSize(1200,400);
 
-	GnuPlotSaver1D gnuPlotSaverNe;
-	gnuPlotSaverNe.setLineColor("#FF0000");
-	gnuPlotSaverNe.setValueRange(0 , 1E23);
-	gnuPlotSaverNe.setSize(1200,400);
+    GnuPlotSaver1D gnuPlotSaverNe;
+    gnuPlotSaverNe.setLineColor("#FF0000");
+    gnuPlotSaverNe.setValueRange(1E7 , 1E11);
+    gnuPlotSaverNe.setSize(1200,400);
 
 
-	GnuPlotSaver1D gnuPlotSaverTe;
-	gnuPlotSaverTe.setAutoScale();
-	gnuPlotSaverTe.setLineColor("#FF0000");
-	//gnuPlotSaverTe.setValueRange(0.03 , 0.04);
-	gnuPlotSaverTe.setSize(1200,400);
+    GnuPlotSaver1D gnuPlotSaverTe;
+    gnuPlotSaverTe.setAutoScale();
+    gnuPlotSaverTe.setLineColor("#FF0000");
+    //gnuPlotSaverTe.setValueRange(0.03 , 0.04);
+    gnuPlotSaverTe.setSize(1200,400);
 
-	GnuPlotSaver1D gnuPlotSaverV;
-	gnuPlotSaverV.setLineColor("#FF0000");
-	gnuPlotSaverV.setAutoScale();
-	gnuPlotSaverV.setSize(1200,400);
+    GnuPlotSaver1D gnuPlotSaverV;
+    gnuPlotSaverV.setLineColor("#FF0000");
+    gnuPlotSaverV.setAutoScale();
+    gnuPlotSaverV.setSize(1200,400);
 
-	double dx = IMPULSE_LENGTH/32.0;
-	double dy=dx;
-	double dz=dx;
+    double dx = IMPULSE_LENGTH/32.0;
+    double dy=dx;
+    double dz=dx;
 
-	double Sx= dx*Nx;
-	double T=1.0;
+    double Sx= dx*Nx;
+    double T=1.0;
 
     double DT = 0.5*dx/C;
     dt = DT;//TODO remove global dt
 
     DBGVAL(DT);
-	DBGVAL(DT*1e-2);
-	DBGVAL(5E-13);
+    DBGVAL(DT*1e-2);
+    DBGVAL(5E-13);
 
 
     std::cout << "stability parameters:" << std::endl;
@@ -221,148 +220,151 @@ int main(){
     CHECK(IMPULSE_LENGTH/dx,>=,32);
 
 
-	TimedGrid1D<double> Ex("Ex");
-	TimedGrid1D<double> Ey("Ey");
-	TimedGrid1D<double> Ez("Ez");
+    TimedGrid1D<double> Ex("Ex");
+    TimedGrid1D<double> Ey("Ey");
+    TimedGrid1D<double> Ez("Ez");
 
-	TimedGrid1D<double> Hx("Hx");
-	TimedGrid1D<double> Hy("Hy");
-	TimedGrid1D<double> Hz("Hz");
+    TimedGrid1D<double> Hx("Hx");
+    TimedGrid1D<double> Hy("Hy");
+    TimedGrid1D<double> Hz("Hz");
 
 
     TimedGrid1D<double> epsilon("epsilon");
-	TimedGrid1D<double> mu("mu");
-	TimedGrid1D<double> sigma("sigma");
+    TimedGrid1D<double> mu("mu");
+    TimedGrid1D<double> sigma("sigma");
 
 
 
-	//building grids
-	Ex.setRangeT(0,T);
-	Ex.setRangeX(0.5*dx , Sx-0.5*dx);
+    //building grids
+    Ex.setRangeT(0,T);
+    Ex.setRangeX(0.5*dx , Sx-0.5*dx);
 
 
-	Ex.setIndexRangeT(0,Nt);
-	Ex.setIndexRangeX(0.5 , Nx-0.5);
+    Ex.setIndexRangeT(0,Nt);
+    Ex.setIndexRangeX(0.5 , Nx-0.5);
 
-	Ex.setLayersCountToMaintain(5);
-	Ex.build();
+    Ex.setLayersCountToMaintain(5);
+    Ex.build();
 
 
-	Ey.setRangeT(0,T);
-	Ey.setRangeX(0 , Sx);
+    Ey.setRangeT(0,T);
+    Ey.setRangeX(0 , Sx);
 
-	Ey.setIndexRangeT(0,Nt);
-	Ey.setIndexRangeX(0,Nx);
+    Ey.setIndexRangeT(0,Nt);
+    Ey.setIndexRangeX(0,Nx);
 
     Ey.setLayersCountToMaintain(5);
-	Ey.build();
+    Ey.build();
 
 
-	Ez.setRangeT(0,T);
-	Ez.setRangeX(0 , Sx);
+    Ez.setRangeT(0,T);
+    Ez.setRangeX(0 , Sx);
 
-	Ez.setIndexRangeT(0,Nt);
-	Ez.setIndexRangeX(0 , Nx);
+    Ez.setIndexRangeT(0,Nt);
+    Ez.setIndexRangeX(0 , Nx);
 
-	Ez.setLayersCountToMaintain(5);
-	Ez.build();
-
-
-
-	Hx.setRangeT(0,T);
-	Hx.setRangeX(0 , Sx);
-
-	Hx.setIndexRangeT(0.5,Nt+0.5);
-	Hx.setIndexRangeX(0   , Nx);
-
-	Hx.setLayersCountToMaintain(2);
-	Hx.build();
+    Ez.setLayersCountToMaintain(5);
+    Ez.build();
 
 
 
+    Hx.setRangeT(0,T);
+    Hx.setRangeX(0 , Sx);
 
-	Hy.setRangeT(0,T);
-	Hy.setRangeX(0.5*dx , Sx-0.5*dx);
+    Hx.setIndexRangeT(0.5,Nt+0.5);
+    Hx.setIndexRangeX(0   , Nx);
 
-	Hy.setIndexRangeT(0.5,Nt+0.5);
-	Hy.setIndexRangeX(0.5 , Nx-0.5);
+    Hx.setLayersCountToMaintain(2);
+    Hx.build();
+
+
+
+
+    Hy.setRangeT(0,T);
+    Hy.setRangeX(0.5*dx , Sx-0.5*dx);
+
+    Hy.setIndexRangeT(0.5,Nt+0.5);
+    Hy.setIndexRangeX(0.5 , Nx-0.5);
 
     Hy.setLayersCountToMaintain(2);
-	Hy.build();
+    Hy.build();
 
 
 
 
-	Hz.setRangeT(0,T);
-	Hz.setRangeX(0.5*dx , Sx-0.5*dx);
+    Hz.setRangeT(0,T);
+    Hz.setRangeX(0.5*dx , Sx-0.5*dx);
 
-	Hz.setIndexRangeT(0.5,Nt+0.5);
-	Hz.setIndexRangeX(0.5 , Nx-0.5);
+    Hz.setIndexRangeT(0.5,Nt+0.5);
+    Hz.setIndexRangeX(0.5 , Nx-0.5);
 
-	Hz.setLayersCountToMaintain(2);
-	Hz.build();
-
-
-
-	Ex.fill(0.0);
-	Ey.fill(0.0);
-	Ez.fill(0.0);
-
-	Hx.fill(0.0);
-	Hy.fill(0.0);
-	Hz.fill(0.0);
+    Hz.setLayersCountToMaintain(2);
+    Hz.build();
 
 
 
-	epsilon.setRangeT(0,T);
-	epsilon.setRangeX(0,Sx);
+    Ex.fill(0.0);
+    Ey.fill(0.0);
+    Ez.fill(0.0);
 
-	epsilon.setIndexRangeT(0,Nt);
-	epsilon.setIndexRangeX(0,Nx);
-
-	epsilon.build();
-
-	epsilon[0].iterateWhole(GRID1D_ITERATOR{
-	    epsilon(0,ix) = 1.0;
-	});
+    Hx.fill(0.0);
+    Hy.fill(0.0);
+    Hz.fill(0.0);
 
 
-	mu.setRangeT(0,T);
-	mu.setRangeX(-0.5*dx,Sx+0.5*dx);
 
-	mu.setIndexRangeT(0,Nt);
-	mu.setIndexRangeX(-0.5,Nx+0.5);
+    epsilon.setRangeT(0,T);
+    epsilon.setRangeX(0,Sx);
 
-	mu.build();
+    epsilon.setIndexRangeT(0,Nt);
+    epsilon.setIndexRangeX(0,Nx);
 
-	mu[0].iterateWhole(GRID1D_ITERATOR{
-	    mu(0,ix)=1.0;
-	});
+    epsilon.build();
+
+    epsilon[0].iterateWhole(GRID1D_ITERATOR{
+        epsilon(0,ix) = 1.0;
+    });
 
 
+    mu.setRangeT(0,T);
+    mu.setRangeX(-0.5*dx,Sx+0.5*dx);
+
+    mu.setIndexRangeT(0,Nt);
+    mu.setIndexRangeX(-0.5,Nx+0.5);
+
+    mu.build();
+
+    mu[0].iterateWhole(GRID1D_ITERATOR{
+        mu(0,ix)=1.0;
+    });
 
 
 
 
 
 
-	sigma.setRangeT(0,T);
-	sigma.setRangeX(0,Sx);
-
-	sigma.setIndexRangeT(0,Nt);
-	sigma.setIndexRangeX(0,Nx);
-
-	sigma.build();
-
-	sigma[0].iterateWhole(GRID1D_ITERATOR{
-	    sigma(0,ix)=0.0;
-	});
-
-	//gnuPlotSaver.save(epsilon[0],"epsilon.plot");
-	//gnuPlotSaver.save(mu[0],"mu.plot");
 
 
-	TimedGrid1D < Vector5D > U("U");
+    sigma.setRangeT(0,T);
+    sigma.setRangeX(0,Sx);
+
+    sigma.setIndexRangeT(0,Nt);
+    sigma.setIndexRangeX(0,Nx);
+
+    sigma.build();
+
+    sigma[0].iterateWhole(GRID1D_ITERATOR{
+        sigma(0,ix)=0.0;
+    });
+
+    //gnuPlotSaver.save(epsilon[0],"epsilon.plot");
+    //gnuPlotSaver.save(mu[0],"mu.plot");
+
+
+    TimedGrid1D < Vector5D > U("U");
+    TimedGrid1D < double > Jx("Jx");TimedGrid1D < double > rotHx("(rot H)x");
+    TimedGrid1D < double > Jy("Jy");
+    TimedGrid1D < double > Jz("Jz");
     TimedGrid1D < Vector5D > Fx("Fx");
     TimedGrid1D < Vector5D > Fy("Fy");
     TimedGrid1D < Vector5D > Fz("Fz");
@@ -370,564 +372,666 @@ int main(){
 
 
     U.setRangeT(0, T);
-	U.setRangeX(0.5 * dx, Sx - 0.5 * dx);
+    U.setRangeX(0.5 * dx, Sx - 0.5 * dx);
 
     U.setIndexRangeT(0, Nt);
-	U.setIndexRangeX(0.5, Nx - 0.5);
-	U.build();
-	U.fill(Vector5D(5));
+    U.setIndexRangeX(0.5, Nx - 0.5);
+    U.build();
+    U.fill(Vector5D(5));
+
+
+    Jx.setRangeT(0, T);
+    Jx.setRangeX(0.5 * dx, Sx - 0.5 * dx);
+
+    Jx.setIndexRangeT(0, Nt);
+    Jx.setIndexRangeX(0.5, Nx - 0.5);
+    Jx.build();
+    Jx.fill(0);
+
+
+    rotHx.setRangeT(0, T);
+    rotHx.setRangeX(0.5 * dx, Sx - 0.5 * dx);
+
+    rotHx.setIndexRangeT(0, Nt);
+    rotHx.setIndexRangeX(0.5, Nx - 0.5);
+    rotHx.build();
+    rotHx.fill(0);
+
+
+
+
+
+    Jy.setRangeT(0, T);
+    Jy.setRangeX(0.5 * dx, Sx - 0.5 * dx);
+
+    Jy.setIndexRangeT(0, Nt);
+    Jy.setIndexRangeX(0.5, Nx - 0.5);
+    Jy.build();
+    Jy.fill(0);
+
+
+
+    Jz.setRangeT(0, T);
+    Jz.setRangeX(0.5 * dx, Sx - 0.5 * dx);
+
+    Jz.setIndexRangeT(0, Nt);
+    Jz.setIndexRangeX(0.5, Nx - 0.5);
+    Jz.build();
+    Jz.fill(0);
+
 
     Fx.setRangeT(0, T);
-	Fx.setRangeX(0.0 * dx, Sx);
+    Fx.setRangeX(0.0 * dx, Sx);
 
     Fx.setIndexRangeT(0, Nt);
-	Fx.setIndexRangeX(0, Nx);
+    Fx.setIndexRangeX(0, Nx);
 
-	Fx.build();
-	Fx.fill(Vector5D(5));
+    Fx.build();
+    Fx.fill(Vector5D(5));
 
 
-	Fy.setRangeT(0, T);
-	Fy.setRangeX(0.5 * dx, Sx - 0.5 * dx);
+    Fy.setRangeT(0, T);
+    Fy.setRangeX(0.5 * dx, Sx - 0.5 * dx);
 
-	Fy.setIndexRangeT(0, Nt);
-	Fy.setIndexRangeX(0.5, Nx - 0.5);
+    Fy.setIndexRangeT(0, Nt);
+    Fy.setIndexRangeX(0.5, Nx - 0.5);
 
-	Fy.build();
-	Fy.fill(Vector5D(5));
+    Fy.build();
+    Fy.fill(Vector5D(5));
 
-	Fz.setRangeT(0, T);
-	Fz.setRangeX(0.5 * dx, Sx - 0.5 * dx);
+    Fz.setRangeT(0, T);
+    Fz.setRangeX(0.5 * dx, Sx - 0.5 * dx);
 
-	Fz.setIndexRangeT(0, Nt);
-	Fz.setIndexRangeX(0.5, Nx - 0.5);
+    Fz.setIndexRangeT(0, Nt);
+    Fz.setIndexRangeX(0.5, Nx - 0.5);
 
-	Fz.build();
-	Fz.fill(Vector5D(5));
+    Fz.build();
+    Fz.fill(Vector5D(5));
 
 
 
     U[0].iterateWhole(GRID1D_ITERATOR{
-	         U(0,ix) = HdVec3D::fromDensityPressureVelocity(NE0*cme , 3.0/2.0*k_b*ATM_T*NE0 , 0,0,0);//TODO 3/2 to i/2
-	});
+             U(0,ix) = HdVec3D::fromDensityPressureVelocity(NE0*cme , 3.0/2.0*k_b*ATM_T*NE0 , 0,0,0);//TODO 3/2 to i/2
+    });
 
 
     gnuPlotSaverE.save(Ex[0], "E_0.plot",GRID1D_CALCULATOR{
-       		return Ex(0,ix);
+               return Ex(0,ix);
     });
 
 
 
-	Timer mainTimer;
-		for(double it=0;it<=Nt;it++){
-			mainTimer.logTime("calculating layer "+ toString(it));
+    Timer mainTimer;
+        for(double it=0;it<=Nt;it++){
+            mainTimer.logTime("calculating layer "+ toString(it));
 
 
-			Ex[it+1];
-			Ey[it+1];
-			Ez[it+1];
-			Hx[it+1.5];
-			Hy[it+1.5];
-			Hz[it+1.5];
+            Ex[it+1];
+            Ey[it+1];
+            Ez[it+1];
+            Hx[it+1.5];
+            Hy[it+1.5];
+            Hz[it+1.5];
 
 
-	        cout << "source\n" << endl;
-			double t = it * DT;
-
-
-
-	        //double sourceHz = H_AMPLITUDE*sin(2.0*M_PI*t/IMPULSE_TIME)*gaussStep(t,IMPULSE_TIME*4,IMPULSE_TIME);
-	        //double sourceHz = t/IMPULSE_TIME<1.0 ? H_AMPLITUDE*(1.0-cos(2.0*M_PI*t/IMPULSE_TIME)) : 0;
-			double sourceHz = H_AMPLITUDE*gauss(t,2.0*IMPULSE_TIME , IMPULSE_TIME);
-
-
-			//double sourceHz = H_AMPLITUDE*sin(2.0*M_PI*t*chi)*gaussStep(t,1.0/chi,1.0/chi);//good
-			//double sourceHz = H_AMPLITUDE*gaussStep(t,2.0/chi,1.0/chi);//nans
-			//double sourceHz = t*chi<1.0 ? H_AMPLITUDE*sin(2.0*M_PI*t*chi) : 0;
-	        //	                sourceHz=H_AMPLITUDE * onePlusCosPulse(DR/(dx*length(PAD_SIZE_Y,PAD_SIZE_Z)) *M_PI) *sin(2.0*M_PI*  (t/IMPULSE_TIME - KY*DY - KZ*DZ)) *gaussStep(t,IMPULSE_TIME*1.5,IMPULSE_TIME);
-
-
-	        Hz(it+0.5, SOURCE_IX) = sourceHz;
-	        cout << "sourceHz=" << sourceHz << endl;
+            cout << "source\n" << endl;
+            double t = it * DT;
 
 
 
-	        cout << "Ex" << endl;
-	        Ex[it+1].iterateInternal(0,GRID1D_ITERATOR{
-	            double EPS = avg(epsilon(0,ix-0.5),epsilon(0,ix+0.5));
-	            double SIGMA = avg(sigma(0,ix-0.5),sigma(0,ix+0.5));
-
-	            /*
-	            Ex(it + 1, ix, iy, iz) =
-
-	                (1.0-SIGMA*DT/2.0/EPS/EPS0)/(1.0+SIGMA*DT/2.0/EPS/EPS0)*Ex(it, ix, iy, iz)
-	                + DT/(1.0+SIGMA*DT/2.0/EPS/EPS0)/EPS/EPS0*(
-	                (Hz(it+0.5, ix, iy+0.5, iz) - Hz(it+0.5, ix, iy - 0.5, iz)) / dy
-	                -
-	                (Hy(it+0.5, ix, iy, iz+0.5) - Hy(it+0.5, ix, iy, iz - 0.5)) / dz
-	                );
-	            */
-
-				const double n_e = avg( HdVec3D::density(U(it,ix)) , HdVec3D::density(U(it,ix)) , HdVec3D::density(U(it,ix)) , HdVec3D::density(U(it,ix)) ); // [1/m^3]
-				const double V_x = avg( HdVec3D::velocityX(U(it,ix)) , HdVec3D::velocityX(U(it,ix)) , HdVec3D::velocityX(U(it,ix)) , HdVec3D::velocityX(U(it,ix)) );
-
-	            const double jx = cze * V_x * n_e;// [A/м^2]
-
-	            Ex(it + 1, ix) = Ex(it, ix) +
-	            		DT/EPS0/EPS*( (Hz(it+0.5, ix) - Hz(it+0.5, ix)) / dy
-	            				       -
-	            				       (Hy(it+0.5, ix) - Hy(it+0.5, ix)) / dz
-	            				       - jx
-		                );//TODO сравнить j и rot(H)
-
-	        });
-
-	        cout << "Ey" << endl;
-	        Ey[it+1].iterateInternal(1,GRID1D_ITERATOR{
-	            double EPS = avg(epsilon(0,ix),epsilon(0,ix));
-	            double SIGMA=avg(sigma(0,ix),sigma(0,ix));
-
-	            /*
-	            Ey(it+1, ix, iy, iz)=
-	                (1.0-SIGMA*DT/2.0/EPS/EPS0)/(1.0+SIGMA*DT/2.0/EPS/EPS0)*Ey(it, ix, iy, iz)
-	                + DT/(1.0+SIGMA*DT/2.0/EPS/EPS0)/EPS/EPS0 * (
-	                (Hx(it+0.5, ix, iy, iz+0.5) - Hx(it+0.5, ix, iy, iz-0.5)) / dz
-	                -
-	                (Hz(it+0.5, ix+0.5, iy, iz) - Hz(it+0.5, ix-0.5, iy, iz)) / dx
-	                );
-	            */
-
-	            const double n_e = avg( HdVec3D::density(U(it,ix-0.5)), HdVec3D::density(U(it,ix-0.5)) , HdVec3D::density(U(it,ix+0.5)) , HdVec3D::density(U(it,ix+0.5))); // [1/m^3]
-	            const double V_y = 0.0;
-
-	            const double jy = cze * V_y * n_e;// [A/м^2]
-
-	            Ey(it+1, ix) = Ey(it, ix) +
-	            		DT/EPS0/EPS * (
-	        	                (Hx(it+0.5, ix) - Hx(it+0.5, ix)) / dz
-	        	                -
-	        	                (Hz(it+0.5, ix+0.5) - Hz(it+0.5, ix-0.5)) / dx
-	        	                - jy
-	        	                );//TODO сравнить j и rot(H)
-
-	        });
-
-	        cout << "Ez" << endl;
-	        Ez[it+1].iterateInternal(1,GRID1D_ITERATOR{
-	            double EPS = avg(epsilon(0,ix),epsilon(0,ix));
-	            double SIGMA=avg(sigma(0,ix),sigma(0,ix));
-
-	            /*
-	            Ez(it + 1, ix, iy, iz)=
-	                (1.0-SIGMA*DT/2.0/EPS/EPS0)/(1.0+SIGMA*DT/2.0/EPS/EPS0)*Ez(it, ix, iy, iz)
-	                + DT/(1.0+SIGMA*DT/2.0/EPS/EPS0)/EPS/EPS0 * (
-	                (Hy(it+0.5, ix+0.5, iy, iz) - Hy(it+0.5, ix-0.5, iy, iz)) / dx
-	                -
-	                (Hx(it+0.5, ix, iy+0.5, iz) - Hx(it+0.5, ix, iy-0.5, iz)) / dy
-	                );
-	            */
-
-	            const double n_e = avg( HdVec3D::density(U(it,ix-0.5)) , HdVec3D::density(U(it,ix-0.5)) ,HdVec3D::density(U(it,ix+0.5)) ,HdVec3D::density(U(it,ix+0.5))); // [1/m^3]
-	            const double V_z = 0.0;
-
-	            const double jz = cze * V_z * n_e;// [A/м^2]
+            //double sourceHz = H_AMPLITUDE*sin(2.0*M_PI*t/IMPULSE_TIME)*gaussStep(t,IMPULSE_TIME*4,IMPULSE_TIME);
+            //double sourceHz = t/IMPULSE_TIME<1.0 ? H_AMPLITUDE*(1.0-cos(2.0*M_PI*t/IMPULSE_TIME)) : 0;
+            double sourceHz = H_AMPLITUDE*gauss(t,2.0*IMPULSE_TIME , IMPULSE_TIME);
 
 
-	            Ez(it + 1, ix) =
-	            		DT/EPS0/EPS * (
-	        	                (Hy(it+0.5, ix+0.5) - Hy(it+0.5, ix-0.5)) / dx
-	        	                -
-	        	                (Hx(it+0.5, ix) - Hx(it+0.5, ix)) / dy
-	        	                -jz
-	        	                );//TODO сравнить j и rot(H)
-
-	        });
+            //double sourceHz = H_AMPLITUDE*sin(2.0*M_PI*t*chi)*gaussStep(t,1.0/chi,1.0/chi);//good
+            //double sourceHz = H_AMPLITUDE*gaussStep(t,2.0/chi,1.0/chi);//nans
+            //double sourceHz = t*chi<1.0 ? H_AMPLITUDE*sin(2.0*M_PI*t*chi) : 0;
+            //                    sourceHz=H_AMPLITUDE * onePlusCosPulse(DR/(dx*length(PAD_SIZE_Y,PAD_SIZE_Z)) *M_PI) *sin(2.0*M_PI*  (t/IMPULSE_TIME - KY*DY - KZ*DZ)) *gaussStep(t,IMPULSE_TIME*1.5,IMPULSE_TIME);
 
 
-	        /*Liao 3rd order absorbing boundary conditions*/
-	        Ey[it+1].iterateBorderMinX(GRID1D_ITERATOR{
-	            double u1=Ey(it,ix+1);
-	            double u2=Ey(it-1,ix+2);
-	            double u3=Ey(it-2,ix+3);
-	            double u4=Ey(it-3,ix+4);
-
-	            Ey(it+1,ix)=interpLiao3(u1,u2,u3,u4);
-	        });
-
-	        Ey[it+1].iterateBorderMaxX(GRID1D_ITERATOR{
-	            double u1=Ey(it,ix-1);
-	            double u2=Ey(it-1,ix-2);
-	            double u3=Ey(it-2,ix-3);
-	            double u4=Ey(it-3,ix-4);
-
-	            Ey(it+1,ix)=interpLiao3(u1,u2,u3,u4);
-	        });
+            Hz(it+0.5, SOURCE_IX) += sourceHz;
+            cout << "sourceHz=" << sourceHz << endl;
 
 
 
-	        Ez[it+1].iterateBorderMinX(GRID1D_ITERATOR{
-	            double u1=Ez(it,ix+1);
-	            double u2=Ez(it-1,ix+2);
-	            double u3=Ez(it-2,ix+3);
-	            double u4=Ez(it-3,ix+4);
+            cout << "Ex" << endl;
+            Ex[it+1].iterateInternal(0,GRID1D_ITERATOR{
+                double EPS = avg(epsilon(0,ix-0.5),epsilon(0,ix+0.5));
+                double SIGMA = avg(sigma(0,ix-0.5),sigma(0,ix+0.5));
 
-	            Ez(it+1,ix)=interpLiao3(u1,u2,u3,u4);
-	        });
+                /*
+                Ex(it + 1, ix, iy, iz) =
 
-	        Ez[it+1].iterateBorderMaxX(GRID1D_ITERATOR{
-	            double u1=Ez(it,ix-1);
-	            double u2=Ez(it-1,ix-2);
-	            double u3=Ez(it-2,ix-3);
-	            double u4=Ez(it-3,ix-4);
+                    (1.0-SIGMA*DT/2.0/EPS/EPS0)/(1.0+SIGMA*DT/2.0/EPS/EPS0)*Ex(it, ix, iy, iz)
+                    + DT/(1.0+SIGMA*DT/2.0/EPS/EPS0)/EPS/EPS0*(
+                    (Hz(it+0.5, ix, iy+0.5, iz) - Hz(it+0.5, ix, iy - 0.5, iz)) / dy
+                    -
+                    (Hy(it+0.5, ix, iy, iz+0.5) - Hy(it+0.5, ix, iy, iz - 0.5)) / dz
+                    );
+                */
 
-	            Ez(it+1,ix)=interpLiao3(u1,u2,u3,u4);
-	        });
+                const double n_e = avg( HdVec3D::density(U(it,ix)) , HdVec3D::density(U(it,ix)) , HdVec3D::density(U(it,ix)) , HdVec3D::density(U(it,ix)) ); // [1/m^3]
+                const double V_x = avg( HdVec3D::velocityX(U(it,ix)) , HdVec3D::velocityX(U(it,ix)) , HdVec3D::velocityX(U(it,ix)) , HdVec3D::velocityX(U(it,ix)) );
+
+                const double jx = cze * V_x * n_e;// [A/м^2]
+
+                Jx(it + 1 , ix) = jx;
+                rotHx(it + 1 , ix) = (Hz(it+0.5, ix) - Hz(it+0.5, ix)) / dy
+                        -
+                        (Hy(it+0.5, ix) - Hy(it+0.5, ix)) / dz;
+
+                Ex(it + 1, ix) = Ex(it, ix) +
+                        DT/EPS0/EPS*( (Hz(it+0.5, ix) - Hz(it+0.5, ix)) / dy
+                                       -
+                                       (Hy(it+0.5, ix) - Hy(it+0.5, ix)) / dz
+                                       - jx
+                        );//TODO сравнить j и rot(H)
+
+            });
+
+            cout << "Ey" << endl;
+            Ey[it+1].iterateInternal(1,GRID1D_ITERATOR{
+                double EPS = avg(epsilon(0,ix),epsilon(0,ix));
+                double SIGMA=avg(sigma(0,ix),sigma(0,ix));
+
+                /*
+                Ey(it+1, ix, iy, iz)=
+                    (1.0-SIGMA*DT/2.0/EPS/EPS0)/(1.0+SIGMA*DT/2.0/EPS/EPS0)*Ey(it, ix, iy, iz)
+                    + DT/(1.0+SIGMA*DT/2.0/EPS/EPS0)/EPS/EPS0 * (
+                    (Hx(it+0.5, ix, iy, iz+0.5) - Hx(it+0.5, ix, iy, iz-0.5)) / dz
+                    -
+                    (Hz(it+0.5, ix+0.5, iy, iz) - Hz(it+0.5, ix-0.5, iy, iz)) / dx
+                    );
+                */
+
+                const double n_e = avg( HdVec3D::density(U(it,ix-0.5)), HdVec3D::density(U(it,ix-0.5)) , HdVec3D::density(U(it,ix+0.5)) , HdVec3D::density(U(it,ix+0.5))); // [1/m^3]
+                const double V_y = 0.0;
+
+                const double jy = cze * V_y * n_e;// [A/м^2]
+
+                //Jy(it + 1 , ix) = jy;
+
+                Ey(it+1, ix) = Ey(it, ix) +
+                        DT/EPS0/EPS * (
+                                (Hx(it+0.5, ix) - Hx(it+0.5, ix)) / dz
+                                -
+                                (Hz(it+0.5, ix+0.5) - Hz(it+0.5, ix-0.5)) / dx
+                                - jy
+                                );//TODO сравнить j и rot(H)
+
+            });
+
+            cout << "Ez" << endl;
+            Ez[it+1].iterateInternal(1,GRID1D_ITERATOR{
+                double EPS = avg(epsilon(0,ix),epsilon(0,ix));
+                double SIGMA=avg(sigma(0,ix),sigma(0,ix));
+
+                /*
+                Ez(it + 1, ix, iy, iz)=
+                    (1.0-SIGMA*DT/2.0/EPS/EPS0)/(1.0+SIGMA*DT/2.0/EPS/EPS0)*Ez(it, ix, iy, iz)
+                    + DT/(1.0+SIGMA*DT/2.0/EPS/EPS0)/EPS/EPS0 * (
+                    (Hy(it+0.5, ix+0.5, iy, iz) - Hy(it+0.5, ix-0.5, iy, iz)) / dx
+                    -
+                    (Hx(it+0.5, ix, iy+0.5, iz) - Hx(it+0.5, ix, iy-0.5, iz)) / dy
+                    );
+                */
+
+                const double n_e = avg( HdVec3D::density(U(it,ix-0.5)) , HdVec3D::density(U(it,ix-0.5)) ,HdVec3D::density(U(it,ix+0.5)) ,HdVec3D::density(U(it,ix+0.5))); // [1/m^3]
+                const double V_z = 0.0;
+
+                const double jz = cze * V_z * n_e;// [A/м^2]
+
+                //Jz(it + 1 , ix) = jz;
+
+                Ez(it + 1, ix) =
+                        DT/EPS0/EPS * (
+                                (Hy(it+0.5, ix+0.5) - Hy(it+0.5, ix-0.5)) / dx
+                                -
+                                (Hx(it+0.5, ix) - Hx(it+0.5, ix)) / dy
+                                -jz
+                                );//TODO сравнить j и rot(H)
+
+            });
 
 
-	        cout << "Hx" << endl;
-	        Hx[it+1.5].iterateWhole(GRID1D_ITERATOR{
-	            double MU = avg(mu(0,ix-0.5),mu(0,ix+0.5));
+            /*Liao 3rd order absorbing boundary conditions*/
+            Ey[it+1].iterateBorderMinX(GRID1D_ITERATOR{
+                double u1=Ey(it,ix+1);
+                double u2=Ey(it-1,ix+2);
+                double u3=Ey(it-2,ix+3);
+                double u4=Ey(it-3,ix+4);
 
-	            Hx(it+1.5, ix)=
-	                Hx(it+0.5, ix) -
-	                DT/MU/MU0  * (
-	                (Ez(it+1, ix) - Ez(it+1, ix)) / dy
-	                -
-	                (Ey(it+1, ix) - Ey(it+1, ix)) / dz
-	                );
-	        });
+                Ey(it+1,ix)=interpLiao3(u1,u2,u3,u4);
+            });
 
-	        cout << "Hy" << endl;
-	        Hy[it+1.5].iterateWhole(GRID1D_ITERATOR{
-	            double MU = avg(mu(0,ix),mu(0,ix));
+            Ey[it+1].iterateBorderMaxX(GRID1D_ITERATOR{
+                double u1=Ey(it,ix-1);
+                double u2=Ey(it-1,ix-2);
+                double u3=Ey(it-2,ix-3);
+                double u4=Ey(it-3,ix-4);
 
-	            Hy(it+1.5, ix)=
-	                Hy(it+0.5, ix) -
-	                DT/MU/MU0  * (
-	                (Ex(it+1, ix) - Ex(it+1, ix)) / dz
-	                -
-	                (Ez(it+1, ix+0.5) - Ez(it+1, ix-0.5)) / dx
-	                );
-	        });
+                Ey(it+1,ix)=interpLiao3(u1,u2,u3,u4);
+            });
 
 
-	        cout << "Hz" << endl;
-	        Hz[it+1.5].iterateWhole(GRID1D_ITERATOR{
-	            double MU = avg(mu(0,ix),mu(0,ix));
 
-	            Hz(it+1.5, ix)=
-	                Hz(it+0.5, ix) -
-	                DT/MU/MU0  * (
-	                (Ey(it+1, ix+0.5) - Ey(it+1, ix-0.5)) / dx
-	                -
-	                (Ex(it+1, ix) - Ex(it+1, ix)) / dy
-	                );
-	        });
+            Ez[it+1].iterateBorderMinX(GRID1D_ITERATOR{
+                double u1=Ez(it,ix+1);
+                double u2=Ez(it-1,ix+2);
+                double u3=Ez(it-2,ix+3);
+                double u4=Ez(it-3,ix+4);
+
+                Ez(it+1,ix)=interpLiao3(u1,u2,u3,u4);
+            });
+
+            Ez[it+1].iterateBorderMaxX(GRID1D_ITERATOR{
+                double u1=Ez(it,ix-1);
+                double u2=Ez(it-1,ix-2);
+                double u3=Ez(it-2,ix-3);
+                double u4=Ez(it-3,ix-4);
+
+                Ez(it+1,ix)=interpLiao3(u1,u2,u3,u4);
+            });
+
+
+            cout << "Hx" << endl;
+            Hx[it+1.5].iterateWhole(GRID1D_ITERATOR{
+                double MU = avg(mu(0,ix-0.5),mu(0,ix+0.5));
+
+                Hx(it+1.5, ix)=
+                    Hx(it+0.5, ix) -
+                    DT/MU/MU0  * (
+                    (Ez(it+1, ix) - Ez(it+1, ix)) / dy
+                    -
+                    (Ey(it+1, ix) - Ey(it+1, ix)) / dz
+                    );
+            });
+
+            cout << "Hy" << endl;
+            Hy[it+1.5].iterateWhole(GRID1D_ITERATOR{
+                double MU = avg(mu(0,ix),mu(0,ix));
+
+                Hy(it+1.5, ix)=
+                    Hy(it+0.5, ix) -
+                    DT/MU/MU0  * (
+                    (Ex(it+1, ix) - Ex(it+1, ix)) / dz
+                    -
+                    (Ez(it+1, ix+0.5) - Ez(it+1, ix-0.5)) / dx
+                    );
+            });
+
+
+            cout << "Hz" << endl;
+            Hz[it+1.5].iterateWhole(GRID1D_ITERATOR{
+                double MU = avg(mu(0,ix),mu(0,ix));
+
+                Hz(it+1.5, ix)=
+                    Hz(it+0.5, ix) -
+                    DT/MU/MU0  * (
+                    (Ey(it+1, ix+0.5) - Ey(it+1, ix-0.5)) / dx
+                    -
+                    (Ex(it+1, ix) - Ex(it+1, ix)) / dy
+                    );
+            });
 
 #ifdef RHS_ENABLE
 
-	    cout << "HD step" << endl;
+        cout << "HD step" << endl;
 
 
-	    cout << "HD step x" << endl;
-	    Fx[it].iterateInternal(1, GRID1D_ITERATOR {
-			Fx(it,ix)=HdFlowVec3D::X::riemannFlux( U(it,ix-0.5) , U(it,ix+0.5) );
-		});
+        cout << "HD step x" << endl;
+        Fx[it].iterateInternal(1, GRID1D_ITERATOR {
+            Fx(it,ix)=HdFlowVec3D::X::riemannFlux( U(it,ix-0.5) , U(it,ix+0.5) );
+        });
 
 
-		cout << "Hd boundary conditions" << endl;
+        cout << "Hd boundary conditions" << endl;
 
-		//TODO: change boundary conditions to more corect
-		//TODO: where to place boundary conditions before or after calculation?
-		//transparent BC
+        //TODO: change boundary conditions to more corect
+        //TODO: where to place boundary conditions before or after calculation?
+        //transparent BC
 
-        //oldflow
-//		Fx[it].iterateBorderMinX(GRID1D_ITERATOR {
-//			Fx(it,ix)=Fx(it,ix+1);
-//		});
+        Fx[it].iterateBorderMinX(GRID1D_ITERATOR {
+            Vector5D u = U(it, ix+0.5);
+
+            double rho = HdVec3D::density(u);
+            double p = HdVec3D::pressure(u);
+            double v = HdVec3D::velocityX(u);
+
+            Vector5D uw = HdVec3D::fromDensityPressureVelocity(rho, p, v, 0, 0);
+
+            Fx(it, ix) = HdFlowVec3D::X::riemannFlux(uw, u);
+        });
+
+        Fx[it].iterateBorderMaxX(GRID1D_ITERATOR {
+            Vector5D u = U(it, ix-0.5);
+
+            double rho = HdVec3D::density(u);
+            double p = HdVec3D::pressure(u);
+            double v = HdVec3D::velocityX(u);
+
+            Vector5D uw = HdVec3D::fromDensityPressureVelocity(rho, p, v, 0, 0);
+
+            Fx(it, ix) = HdFlowVec3D::X::riemannFlux(u, uw);
+        });
+
+
+
+
+
+        cout << "dissipation step" << endl;
+
+        double fff[6];
+
+        U[it + 1].iterateWhole(GRID1D_ITERATOR {
+            U(it+1,ix)=U(it,ix) - DT/dx*(Fx(it,ix+0.5)-Fx(it,ix-0.5));
+
+
+            //DISSIPATION STEP
+            const double n_e = HdVec3D::density(U(it,ix)) / cme;// концентрация электронов
+            const double WEt = HdVec3D::internalEnergyPerVolumeUnit(U(it,ix)) / n_e / Wevlt;//электронная температура [эВ]
+
+            int N = 5;//размерность системы уравнений
+            //const int USER_DATA_N = ceil(1.*sizeof(UserData)/sizeof(double));//размер данных, передаваемых в функцию решения диф. уравнения (в размерах double)
+            double y[5 /*+ USER_DATA_N*/];
+
+            const double vx = HdVec3D::velocityX( U(it+1,ix) );
+            const double vy = HdVec3D::velocityY( U(it+1,ix) );
+            const double vz = HdVec3D::velocityZ( U(it+1,ix) );
+
+            const double E_internal = HdVec3D::internalEnergyPerVolumeUnit( U(it+1,ix) )/n_e;//Внутренняя энергия на одлин электрон [Дж]
+
+//            DBGLN("before dissipation");
 //
-//		Fx[it].iterateBorderMaxX(GRID1D_ITERATOR {
-//			Fx(it,ix)=Fx(it,ix-1);
-//		});
-
-
-		Fx[it].iterateBorderMinX(GRID1D_ITERATOR {
-			Fx(it,ix)=HdVec3D::toFlowX(U(it,ix+0.5));
-		});
-
-		Fx[it].iterateBorderMaxX(GRID1D_ITERATOR {
-			Fx(it,ix)= -HdVec3D::toFlowX(U(it,ix-0.5));
-		});
-
-
-
-
-		cout << "dissipation step" << endl;
-
-		double fff[6];
-
-		U[it + 1].iterateWhole(GRID1D_ITERATOR {
-			U(it+1,ix)=U(it,ix) - DT/dx*(Fx(it,ix+0.5)-Fx(it,ix-0.5));
-
-
-			//DISSIPATION STEP
-			const double n_e = HdVec3D::density(U(it,ix)) / cme;// концентрация электронов
-			const double WEt = HdVec3D::internalEnergyPerVolumeUnit(U(it,ix)) / n_e / Wevlt;//электронная температура [эВ]
-
-			int N = 5;//размерность системы уравнений
-			//const int USER_DATA_N = ceil(1.*sizeof(UserData)/sizeof(double));//размер данных, передаваемых в функцию решения диф. уравнения (в размерах double)
-			double y[5 /*+ USER_DATA_N*/];
-
-			const double vx = HdVec3D::velocityX( U(it+1,ix) );
-			const double vy = HdVec3D::velocityY( U(it+1,ix) );
-			const double vz = HdVec3D::velocityZ( U(it+1,ix) );
-
-			const double E_internal = HdVec3D::internalEnergyPerVolumeUnit( U(it+1,ix) )/n_e;//Внутренняя энергия на одлин электрон [Дж]
-
-//			DBGLN("before dissipation");
+//            DBGVAL( HdVec3D::fullEnergyPerVolumeUnit( U(it,ix,iy,iz) ) );
+//            DBGVAL( HdVec3D::kineticEnergyPerVolumeUnit( U(it,ix,iy,iz) ) );
+//            DBGVAL( HdVec3D::internalEnergyPerVolumeUnit( U(it,ix,iy,iz) )  );
 //
-//			DBGVAL( HdVec3D::fullEnergyPerVolumeUnit( U(it,ix,iy,iz) ) );
-//			DBGVAL( HdVec3D::kineticEnergyPerVolumeUnit( U(it,ix,iy,iz) ) );
-//			DBGVAL( HdVec3D::internalEnergyPerVolumeUnit( U(it,ix,iy,iz) )  );
+//            DBGVAL( HdVec3D::fullEnergyPerVolumeUnit( U(it+1,ix,iy,iz) ) );
+//            DBGVAL( HdVec3D::kineticEnergyPerVolumeUnit( U(it+1,ix,iy,iz) ) );
+//            DBGVAL( HdVec3D::internalEnergyPerVolumeUnit( U(it+1,ix,iy,iz) )  );
+
+
+            y[0] = HdVec3D::density( U(it+1,ix) ) / cme;//концентрация электронов
+            y[1] = vx;
+            y[2] = vy;
+            y[3] = vz;
+            y[4] = E_internal;//TODO
+
+            /*
+            double y0 = y[0];
+            double y1 = y[1];
+            double y2 = y[2];
+            double y3 = y[3];
+            double y4 = y[4];
+            */
+
+            /*
+            UserData* userdata = (UserData*)(&y[N]);
+            userdata->E_x = avg( Ex(it+1,ix) , Ex(it+1,ix) , Ex(it+1,ix) , Ex(it+1,ix) ); //TODO может сделать усреднение и по слоям времени?
+            userdata->E_y = avg( Ey(it+1,ix-0.5) , Ey(it+1,ix-0.5) , Ey(it+1,ix+0.5) , Ey(it+1,ix+0.5) ); //TODO может сделать усреднение и по слоям времени?
+            userdata->E_z = avg( Ez(it+1,ix-0.5) , Ez(it+1,ix-0.5) , Ez(it+1,ix+0.5) , Ez(it+1,ix+0.5) ); //TODO может сделать усреднение и по слоям времени?
+
+            userdata->H_x = avg( Hx(it+0.5,ix-0.5) , Hx(it+0.5,ix+0.5) , Hx(it+1.5,ix-0.5) , Hx(it+1.5,ix+0.5) );//TODO нужно ди усреднение по времени?
+            userdata->H_y = avg( Hy(it+0.5,ix) , Hy(it+0.5,ix) , Hy(it+1.5,ix) , Hy(it+1.5,ix) );//TODO нужно ди усреднение по времени?
+            userdata->H_z = avg( Hz(it+0.5,ix) , Hz(it+0.5,ix) , Hz(it+1.5,ix) , Hz(it+1.5,ix) );//TODO нужно ди усреднение по времени?
+
+            userdata->V_SQR = sqr(vx,vy,vz);
+            */
+
+            G_userdata.E_x = avg( Ex(it+1,ix) , Ex(it+1,ix) , Ex(it+1,ix) , Ex(it+1,ix) );//TODO может сделать усреднение и по слоям времени?
+            G_userdata.E_y = avg( Ey(it+1,ix-0.5) , Ey(it+1,ix-0.5) , Ey(it+1,ix+0.5) , Ey(it+1,ix+0.5) );//TODO может сделать усреднение и по слоям времени?
+            G_userdata.E_z = avg( Ez(it+1,ix-0.5) , Ez(it+1,ix-0.5) , Ez(it+1,ix+0.5) , Ez(it+1,ix+0.5) );//TODO может сделать усреднение и по слоям времени?
+
+            G_userdata.H_x = avg( Hx(it+0.5,ix-0.5) , Hx(it+0.5,ix+0.5) , Hx(it+1.5,ix-0.5) , Hx(it+1.5,ix+0.5) );//TODO нужно ди усреднение по времени?
+            G_userdata.H_y = avg( Hy(it+0.5,ix) , Hy(it+0.5,ix) , Hy(it+1.5,ix) , Hy(it+1.5,ix) );//TODO нужно ди усреднение по времени?
+            G_userdata.H_z = avg( Hz(it+0.5,ix) , Hz(it+0.5,ix) , Hz(it+1.5,ix) , Hz(it+1.5,ix) );//TODO нужно ди усреднение по времени?
+
+            G_userdata.V_SQR = sqr(vx,vy,vz);
+
+            double time=N*DT;
+            double time_end=(N+1)*DT;
+
+            double hm=DT * 1e-9; /* minimal step size for the methods */
+            double ep=1e-6;  /* relative tolerance. The code cannot guarantee the requested accuracy for ep<1.d-9 */
+            double tr=1e-50;  /* absolute tolerance */
+            double h=hm;
+
+            const int DPAR_SIZE = max(13*N,(7+2*N)*N);    //As ODE system has size n=2, than the size of dpar array is equal to
+                                                           //max{13*n,(7+2*n)*n}=max{26,22}=26. More details on dpar array can be
+                                                           //found in the Manual
+            double dpar[DPAR_SIZE];
+            int kd[N];
+
+            int ierr=0;
+
+
+
+
+            //rhs(&N,)
+
+
+            double HD_N = 100.0;
+            double DT_HD = DT/HD_N;
+
+
+            double tmpy[5];
+            for(int i=0;i<5;i++)tmpy[i] = y[i];
+
+            for(int i=0;i<HD_N;i++) {
+
+                /*int res = */rhs(&N,&time,y,fff);
+
+
+                    y[0] += fff[0]*DT_HD;
+                    y[1] += fff[1]*DT_HD;
+                    y[2] += fff[2]*DT_HD;
+                    y[3] += fff[3]*DT_HD;
+                    y[4] += fff[4]*DT_HD;
+
+                    /*
+                    if(res>0) {
+                        for(int j=0;j<5;j++)y[j] = tmpy[j];
+                        i=0;
+                    }*/
+
+                }
+
+            //dodesol(ipar,&N,&time,&time_end,y,rhs,NULL,&h,&hm,&ep,&tr,dpar,kd,&ierr);
+//            DBGVAL("dodesolved");
+
+
+            double rho=y[0]*cme;
+            double wx=y[1];
+            double wy=y[2];
+            double wz=y[3];
+            double TE=y[4] * y[0];
+
+            U(it+1,ix) = HdVec3D::fromDesityVelocityInternalEnergyPerVolumeUnit(rho,wx,wy,wz,TE);
+//            DBGLN("\n\nafter dissipation "+toString(ix));
 //
-//			DBGVAL( HdVec3D::fullEnergyPerVolumeUnit( U(it+1,ix,iy,iz) ) );
-//			DBGVAL( HdVec3D::kineticEnergyPerVolumeUnit( U(it+1,ix,iy,iz) ) );
-//			DBGVAL( HdVec3D::internalEnergyPerVolumeUnit( U(it+1,ix,iy,iz) )  );
-
-
-			y[0] = HdVec3D::density( U(it+1,ix) ) / cme;//концентрация электронов
-			y[1] = vx;
-			y[2] = vy;
-			y[3] = vz;
-			y[4] = E_internal;//TODO
-
-			/*
-		    double y0 = y[0];
-		    double y1 = y[1];
-		    double y2 = y[2];
-		    double y3 = y[3];
-		    double y4 = y[4];
-		    */
-
-			/*
-			UserData* userdata = (UserData*)(&y[N]);
-			userdata->E_x = avg( Ex(it+1,ix) , Ex(it+1,ix) , Ex(it+1,ix) , Ex(it+1,ix) ); //TODO может сделать усреднение и по слоям времени?
-			userdata->E_y = avg( Ey(it+1,ix-0.5) , Ey(it+1,ix-0.5) , Ey(it+1,ix+0.5) , Ey(it+1,ix+0.5) ); //TODO может сделать усреднение и по слоям времени?
-			userdata->E_z = avg( Ez(it+1,ix-0.5) , Ez(it+1,ix-0.5) , Ez(it+1,ix+0.5) , Ez(it+1,ix+0.5) ); //TODO может сделать усреднение и по слоям времени?
-
-			userdata->H_x = avg( Hx(it+0.5,ix-0.5) , Hx(it+0.5,ix+0.5) , Hx(it+1.5,ix-0.5) , Hx(it+1.5,ix+0.5) );//TODO нужно ди усреднение по времени?
-			userdata->H_y = avg( Hy(it+0.5,ix) , Hy(it+0.5,ix) , Hy(it+1.5,ix) , Hy(it+1.5,ix) );//TODO нужно ди усреднение по времени?
-			userdata->H_z = avg( Hz(it+0.5,ix) , Hz(it+0.5,ix) , Hz(it+1.5,ix) , Hz(it+1.5,ix) );//TODO нужно ди усреднение по времени?
-
-			userdata->V_SQR = sqr(vx,vy,vz);
-			*/
-
-			G_userdata->E_x = avg( Ex(it+1,ix) , Ex(it+1,ix) , Ex(it+1,ix) , Ex(it+1,ix) );//TODO может сделать усреднение и по слоям времени?
-			G_userdata->E_y = avg( Ey(it+1,ix-0.5) , Ey(it+1,ix-0.5) , Ey(it+1,ix+0.5) , Ey(it+1,ix+0.5) );//TODO может сделать усреднение и по слоям времени?
-			G_userdata->E_z = avg( Ez(it+1,ix-0.5) , Ez(it+1,ix-0.5) , Ez(it+1,ix+0.5) , Ez(it+1,ix+0.5) );//TODO может сделать усреднение и по слоям времени?
-
-			G_userdata->H_x = avg( Hx(it+0.5,ix-0.5) , Hx(it+0.5,ix+0.5) , Hx(it+1.5,ix-0.5) , Hx(it+1.5,ix+0.5) );//TODO нужно ди усреднение по времени?
-			G_userdata->H_y = avg( Hy(it+0.5,ix) , Hy(it+0.5,ix) , Hy(it+1.5,ix) , Hy(it+1.5,ix) );//TODO нужно ди усреднение по времени?
-			G_userdata->H_z = avg( Hz(it+0.5,ix) , Hz(it+0.5,ix) , Hz(it+1.5,ix) , Hz(it+1.5,ix) );//TODO нужно ди усреднение по времени?
-
-			G_userdata->V_SQR = sqr(vx,vy,vz);
-
-			double time=N*DT;
-			double time_end=(N+1)*DT;
-
-			double hm=DT * 1e-9; /* minimal step size for the methods */
-			double ep=1e-6;  /* relative tolerance. The code cannot guarantee the requested accuracy for ep<1.d-9 */
-			double tr=1e-50;  /* absolute tolerance */
-		    double h=hm;
-
-		    const int DPAR_SIZE = max(13*N,(7+2*N)*N);	//As ODE system has size n=2, than the size of dpar array is equal to
-		   	                                            //max{13*n,(7+2*n)*n}=max{26,22}=26. More details on dpar array can be
-		   	                                            //found in the Manual
-	    	double dpar[DPAR_SIZE];
-	    	int kd[N];
-
-	    	int ierr=0;
-
-
-
-
-	    	//rhs(&N,)
-
-
-	    	double HD_N = 100.0;
-	    	double DT_HD = DT/HD_N;
-
-
-	    	double tmpy[5];
-	    	for(int i=0;i<5;i++)tmpy[i] = y[i];
-
-	    	for(int i=0;i<HD_N;i++) {
-
-	    		/*int res = */rhs(&N,&time,y,fff);
-
-
-					y[0] += fff[0]*DT_HD;
-					y[1] += fff[1]*DT_HD;
-					y[2] += fff[2]*DT_HD;
-					y[3] += fff[3]*DT_HD;
-					y[4] += fff[4]*DT_HD;
-
-					/*
-					if(res>0) {
-						for(int j=0;j<5;j++)y[j] = tmpy[j];
-						i=0;
-					}*/
-
-				}
-
-			//dodesol(ipar,&N,&time,&time_end,y,rhs,NULL,&h,&hm,&ep,&tr,dpar,kd,&ierr);
-//			DBGVAL("dodesolved");
-
-
-			double rho=y[0]*cme;
-			double wx=y[1];
-			double wy=y[2];
-			double wz=y[3];
-			double TE=y[4] * y[0];
-
-			U(it+1,ix) = HdVec3D::fromDesityVelocityInternalEnergyPerVolumeUnit(rho,wx,wy,wz,TE);
-//			DBGLN("\n\nafter dissipation "+toString(ix));
+//            DBGVAL( HdVec3D::fullEnergyPerVolumeUnit( U(it,ix,iy,iz) ) );
+//            DBGVAL( HdVec3D::kineticEnergyPerVolumeUnit( U(it,ix,iy,iz) ) );
+//            DBGVAL( HdVec3D::internalEnergyPerVolumeUnit( U(it,ix,iy,iz) )  );
 //
-//		    DBGVAL( HdVec3D::fullEnergyPerVolumeUnit( U(it,ix,iy,iz) ) );
-//			DBGVAL( HdVec3D::kineticEnergyPerVolumeUnit( U(it,ix,iy,iz) ) );
-//			DBGVAL( HdVec3D::internalEnergyPerVolumeUnit( U(it,ix,iy,iz) )  );
-//
-//			DBGVAL( HdVec3D::fullEnergyPerVolumeUnit( U(it+1,ix,iy,iz) ) );
-//			DBGVAL( HdVec3D::kineticEnergyPerVolumeUnit( U(it+1,ix,iy,iz) ) );
-//			DBGVAL( HdVec3D::internalEnergyPerVolumeUnit( U(it+1,ix,iy,iz) )  );
+//            DBGVAL( HdVec3D::fullEnergyPerVolumeUnit( U(it+1,ix,iy,iz) ) );
+//            DBGVAL( HdVec3D::kineticEnergyPerVolumeUnit( U(it+1,ix,iy,iz) ) );
+//            DBGVAL( HdVec3D::internalEnergyPerVolumeUnit( U(it+1,ix,iy,iz) )  );
 
-		});
+        });
 
-		DBGLN("U0");
-		//printStats(acc_U0);
-		DBGLN("U1");
-		//printStats(acc_U1);
-		DBGLN("U2");
-		//printStats(acc_U2);
-		DBGLN("U3");
-		//printStats(acc_U3);
-		DBGLN("U4");
-		//printStats(acc_U4);
+        DBGLN("U0");
+        //printStats(acc_U0);
+        DBGLN("U1");
+        //printStats(acc_U1);
+        DBGLN("U2");
+        //printStats(acc_U2);
+        DBGLN("U3");
+        //printStats(acc_U3);
+        DBGLN("U4");
+        //printStats(acc_U4);
 
 
-		std::cout <<"\n\n" <<std::endl;
+        std::cout <<"\n\n" <<std::endl;
 
 
-		//DBGLN("f0");
-		//printStats(acc_f0);
-		//DBGLN("f1");
-		//printStats(acc_f1);
-		//DBGLN("f2");
-		//printStats(acc_f2);
-		//DBGLN("f3");
-		//printStats(acc_f3);
-		//DBGLN("f4");
-		//printStats(acc_f4);
+        //DBGLN("f0");
+        //printStats(acc_f0);
+        //DBGLN("f1");
+        //printStats(acc_f1);
+        //DBGLN("f2");
+        //printStats(acc_f2);
+        //DBGLN("f3");
+        //printStats(acc_f3);
+        //DBGLN("f4");
+        //printStats(acc_f4);
 
-		//pressAnyKey();
+        //pressAnyKey();
 
 #endif
 
-	    if (isEveryNth(it, 100)) {
+        /*
+        if (isEveryNth(it, 100)) {
 
-	    	gnuPlotSaverH.save(Hx[it + 0.5], frame("Hx_", it, "plot"),GRID1D_CALCULATOR{
-	    		return Hx(it + 0.5,ix);
-	        });
+            gnuPlotSaverH.save(Hx[it + 0.5], frame("Hx_", it, "plot"),GRID1D_CALCULATOR{
+                return Hx(it + 0.5,ix);
+            });
 
-	    	gnuPlotSaverH.save(Hy[it + 0.5], frame("Hy_", it, "plot"),GRID1D_CALCULATOR{
-	    		return Hy(it + 0.5,ix);
-	    	});
+            gnuPlotSaverH.save(Hy[it + 0.5], frame("Hy_", it, "plot"),GRID1D_CALCULATOR{
+                return Hy(it + 0.5,ix);
+            });
 
-	    	gnuPlotSaverH.save(Hz[it + 0.5], frame("Hz_", it, "plot"),GRID1D_CALCULATOR{
-				return Hz(it + 0.5,ix);
-			});
+            gnuPlotSaverH.save(Hz[it + 0.5], frame("Hz_", it, "plot"),GRID1D_CALCULATOR{
+                return Hz(it + 0.5,ix);
+            });
 
-	    	gnuPlotSaverE.save(Ex[it], frame("Ex_", it, "plot"),GRID1D_CALCULATOR{
-	    		return Ex(it,ix);
-	    	});
+            gnuPlotSaverE.save(Ex[it], frame("Ex_", it, "plot"),GRID1D_CALCULATOR{
+                return Ex(it,ix);
+            });
 
-	    	gnuPlotSaverE.save(Ey[it], frame("Ey_", it, "plot"),GRID1D_CALCULATOR{
-	    	    return Ey(it,ix);
-	        });
+            gnuPlotSaverE.save(Ey[it], frame("Ey_", it, "plot"),GRID1D_CALCULATOR{
+                return Ey(it,ix);
+            });
 
-	    	gnuPlotSaverE.save(Ez[it], frame("Ez_", it, "plot"),GRID1D_CALCULATOR{
-	    	    return Ez(it,ix);
-	        });
-		}
-
-
-	    if (isEveryNth(it, 100)) {
-	       	gnuPlotSaverNe.save(U[it], frame("Ne_", it, "plot"),GRID1D_CALCULATOR{
-	    		return HdVec3D::density(U(it,ix)) / cme;
-	    	});
-
-	       	gnuPlotSaverTe.save(U[it], frame("Te_", it, "plot"),GRID1D_CALCULATOR{
-	       		return log(J_TO_EV(HdVec3D::internalEnergyPerMassUnit(U(it,ix)) * cme));
-	        });
-
-	       	gnuPlotSaverV.save(U[it], frame("Vx_", it, "plot"),GRID1D_CALCULATOR{
-	       	    return HdVec3D::velocityX(U(it,ix));
-	        });
-
-	       	/*
-	       	gnuPlotSaverV.save(U[it], frame("Vy", it, "plot"),GRID1D_CALCULATOR{
-	       	    return HdVec3D::velocityY(U(it,ix));
-	       	});
-
-	       	gnuPlotSaverV.save(U[it], frame("Vz", it, "plot"),GRID1D_CALCULATOR{
-	       	    return HdVec3D::velocityZ(U(it,ix));
-	        });*/
-
-	    }
-
-		}
-		mainTimer.logTime("calculation finished");
+            gnuPlotSaverE.save(Ez[it], frame("Ez_", it, "plot"),GRID1D_CALCULATOR{
+                return Ez(it,ix);
+            });
+        }*/
 
 
+        if (isEveryNth(it, 50)) {
 
-	return 0;
+            gnuPlotSaverNe.save(U[it], frame("Ne_", it, "plot"), GRID1D_CALCULATOR {
+                return HdVec3D::density(U(it,ix)) / cme;
+            });
+
+            gnuPlotSaverTe.save(U[it], frame("logTe_", it, "plot"),GRID1D_CALCULATOR{
+                return log(J_TO_EV(HdVec3D::internalEnergyPerMassUnit(U(it,ix)) * cme));
+            });
+
+            gnuPlotSaverV.save(U[it], frame("Vx_", it, "plot"),GRID1D_CALCULATOR{
+                return HdVec3D::velocityX(U(it,ix));
+            });
+
+
+            gnuPlotSaverE.save(Ex[it], frame("Ex_", it, "plot"), GRID1D_CALCULATOR {
+                return Ex(it,ix);
+            });
+
+            gnuPlotSaverE.save(Ey[it], frame("Ey_", it, "plot"), GRID1D_CALCULATOR {
+                return Ey(it,ix);
+            });
+
+            gnuPlotSaverE.save(Ez[it], frame("Ez_", it, "plot"), GRID1D_CALCULATOR {
+                return Ez(it,ix);
+            });
+
+            gnuPlotSaverH.save(Hx[it+0.5], frame("Hx_", it, "plot"), GRID1D_CALCULATOR {
+                return Hx(it+0.5,ix);
+            });
+
+            gnuPlotSaverH.save(Hy[it+0.5], frame("Hy_", it, "plot"), GRID1D_CALCULATOR {
+                return Hy(it+0.5,ix);
+            });
+
+
+
+            gnuPlotSaverH.save(Hz[it+0.5], frame("Hz_", it, "plot"), GRID1D_CALCULATOR {
+                return Hz(it+0.5,ix);
+            });
+
+
+
+            gnuPlotSaverV.save(U[it], frame("density_", it, "plot"),GRID1D_CALCULATOR{
+                return HdVec3D::density(U(it,ix));
+            });
+
+            gnuPlotSaverV.save(U[it], frame("pressure_", it, "plot"),GRID1D_CALCULATOR{
+                return HdVec3D::pressure(U(it,ix));
+            });
+
+            gnuPlotSaverV.save(Jx[it], frame("jx_", it, "plot"),GRID1D_CALCULATOR{
+                return Jx(it,ix);
+            });
+
+            gnuPlotSaverV.save(rotHx[it], frame("rotHx_", it, "plot"),GRID1D_CALCULATOR{
+                return rotHx(it,ix);
+            });
+
+//               gnuPlotSaverV.save(Jy[it], frame("jy_", it, "plot"),GRID1D_CALCULATOR{
+//                   return Jy(it,ix);
+//               });
+//
+//               gnuPlotSaverV.save(Jz[it], frame("jz_", it, "plot"),GRID1D_CALCULATOR{
+//                   return Jz(it,ix);
+//               });
+
+        }
+
+        }
+        mainTimer.logTime("calculation finished");
+
+
+
+    return 0;
 }
 
 
 void rhs(int *ptrN,double *t,double *u,double *f){
 
-	int N = *ptrN;
+    int N = *ptrN;
 
-	double n_e = u[0];
+    double n_e = u[0];
 
-	double V_x = u[1];
-	double V_y = u[2];
-	double V_z = u[3];
+    double V_x = u[1];
+    double V_y = u[2];
+    double V_z = u[3];
 
-	double Et = u[4];//тепловая энергия одного электрона [Дж]
-	double WEt = J_TO_EV(Et);//тепловая энергия одного электрона [эВ]
-	double WEfull = WEt + ELECTRON_MASS*sqr(V_x,V_y,V_z)/2.0;//полная энергия одного электрона [эВ]
+    double Et = u[4];//тепловая энергия одного электрона [Дж]
+    double WEt = J_TO_EV(Et);//тепловая энергия одного электрона [эВ]
+    double WEfull = WEt + ELECTRON_MASS*sqr(V_x,V_y,V_z)/2.0;//полная энергия одного электрона [эВ]
 
-//	DBGVAL(WEt);
+//    DBGVAL(WEt);
 
-	const double n_i = n_e; //концентрация положительных ионов [м^-3] TODO why n_i ~= n_e ?
+    const double n_i = n_e; //концентрация положительных ионов [м^-3] TODO why n_i ~= n_e ?
 
     const double n_all = ATMOSPHERE_DENSITY_40KM / AVERAGE_AIR_ION_MASS;
-	const double n_O2 = ATMOSPHERE_O2_CONCENTRATION_40KM;
-	const double n = n_all - n_O2; //концентрация нейтралов + положительных ионов TODO[] отсылка к Ступицкому
-	const double n_0 = n - n_i;//т.к n = n_i + n_0 (такие обозначения)
+    const double n_O2 = ATMOSPHERE_O2_CONCENTRATION_40KM;
+    const double n = n_all - n_O2; //концентрация нейтралов + положительных ионов TODO[] отсылка к Ступицкому
+    const double n_0 = n - n_i;//т.к n = n_i + n_0 (такие обозначения)
 
 
-	//const UserData* userdata = (UserData*)(&u[N]);
-	//const UserData userdata = (UserData*)(&u[N]);
+    //const UserData* userdata = (UserData*)(&u[N]);
+    //const UserData userdata = (UserData*)(&u[N]);
 
-    const double E_x = G_userdata->E_x;
-    const double E_y = G_userdata->E_y;
-    const double E_z = G_userdata->E_z;
+    const double E_x = G_userdata.E_x;
+    const double E_y = G_userdata.E_y;
+    const double E_z = G_userdata.E_z;
 
-    const double H_x = G_userdata->H_x;
-    const double H_y = G_userdata->H_y;
-    const double H_z = G_userdata->H_z;
+    const double H_x = G_userdata.H_x;
+    const double H_y = G_userdata.H_y;
+    const double H_z = G_userdata.H_z;
 
     //const double V_SQR = userdata->V_SQR;
     const double V_SQR = sqr(u[1],u[2],u[3]);
@@ -969,7 +1073,7 @@ void rhs(int *ptrN,double *t,double *u,double *f){
 
     const double fi = 0.64 + 0.11*log(I/kT);//TODO natural or decimal
     const double S_ee = -(I+3.0/2.0*kT)*Wevlt*(n_e*n_0*j_0e - sqr(n_e)*n_i*j_ei)+
-    		            + (3.0/2.0-fi)*kT*Wevlt*n_e*n_i*j_v - 3.0/2.0*kT*Wevlt*j_g*n_e*n_i - 3.0/2.0*kT*Wevlt*j_p*n_e*n_O2*n;//TODO заменить Wevlt на EV_TO_J()
+                        + (3.0/2.0-fi)*kT*Wevlt*n_e*n_i*j_v - 3.0/2.0*kT*Wevlt*j_g*n_e*n_i - 3.0/2.0*kT*Wevlt*j_p*n_e*n_O2*n;//TODO заменить Wevlt на EV_TO_J()
 
     const double WEt_ = 0.025;//TODO что это? сколько это градусов?
     const double Q_ei = -2.0 * v_ei*n_e*(WEt-WEt_)*Wevlt*m_e/M + m*V_SQR/2.0;//TODO заменить Wevlt на EV_TO_J() ? порог??? WEt должно быть > WEt_
@@ -994,7 +1098,7 @@ void rhs(int *ptrN,double *t,double *u,double *f){
 
 
 
-	f[0] = S_e;
+    f[0] = S_e;
     f[1] = -(v_ei+v_e0)*V_x  -  e*E_x/m  +  e*MU*MU0/m*V_z*H_y - e*MU*MU0/m*V_y*H_z;
     f[2] = -(v_ei+v_e0)*V_y  -  e*E_y/m  +  e*MU*MU0/m*V_x*H_z - e*MU*MU0/m*V_z*H_x;
     f[3] = -(v_ei+v_e0)*V_z  -  e*E_z/m  +  e*MU*MU0/m*V_y*H_x - e*MU*MU0/m*V_x*H_y;
@@ -1003,10 +1107,10 @@ void rhs(int *ptrN,double *t,double *u,double *f){
 
 /*
     gridM_N_V_ei_Vx(i) = -(v_ei     ) ;//*V_x;
-	gridM_N_V_e0_Vx(i) = -(     v_e0);//*V_x;
-	grid_e_Ex_m(i) = -e*E_y/m;
-	grid_e_MU_MU0_m_Vz_Hy(i) = e*MU*MU0/m*V_z*H_y;
-	grid_e_MU_MU0_m_Vy_Hz(i) = -e*MU*MU0/m*V_y*H_z;
+    gridM_N_V_e0_Vx(i) = -(     v_e0);//*V_x;
+    grid_e_Ex_m(i) = -e*E_y/m;
+    grid_e_MU_MU0_m_Vz_Hy(i) = e*MU*MU0/m*V_z*H_y;
+    grid_e_MU_MU0_m_Vy_Hz(i) = -e*MU*MU0/m*V_y*H_z;
 */
 
     //csv.addRow("time",*t);
@@ -1076,9 +1180,9 @@ if((isnan(u[4])!=0) || (isinf(u[4])!=0)) return (5);
 
 if((isnan(f[0])!=0) || (isinf(f[0])!=0)) return (6);
 if((isnan(f[1])!=0) || (isinf(f[1])!=0)) {
-	std::cout<< "testtest" << std::endl;
-	std::cout<< "testtest2" << std::endl;
-	return (7);
+    std::cout<< "testtest" << std::endl;
+    std::cout<< "testtest2" << std::endl;
+    return (7);
 }
 if((isnan(f[2])!=0) || (isinf(f[2])!=0)) return (8);
 if((isnan(f[3])!=0) || (isinf(f[3])!=0)) return (9);
