@@ -2,7 +2,11 @@
 #include "GridsCommon.hpp"
 #include "intel_ode.h"
 
+//#define RHS_ENABLE 1
+
 using namespace std;
+
+const int NUM_PROC = 4;
 
 
 const double PI_A0_SQR = 0.88E-16     *1E-4;// [м^2]
@@ -24,11 +28,13 @@ const double C=SPEED_OF_LIGHT;// м/с    C=sqrt(1/EPS0/MU0)
 const double ATOMIC_MASS_UNIT = 1.660538782E-27;// [кг]
 const double AVERAGE_AIR_ION_MASS = 29.0 * ATOMIC_MASS_UNIT;// [кг]  для высот < 100-120 км молекулярная масса почти постоянна
 const double ELECTRON_MASS = 9.10938215E-31;// Масса электрона, [кг]
+const double ELECTRON_CHARGE = 1.602E-19;// Заряд электрона, [Кл]
 
 
 //параметры атмосферы на высоте 40км
 const double ATMOSPHERE_O2_CONCENTRATION_40KM = 1.7E16         * 1E6;// [1/м^3]
-const double ATMOSPHERE_ELECTRON_CONCENTRATION_40KM = 3.16E4   * 1E6;// [1/м^3]
+//const double ATMOSPHERE_ELECTRON_CONCENTRATION_40KM = 3.16E4   * 1E6;// [1/м^3] // astronet
+const double ATMOSPHERE_ELECTRON_CONCENTRATION_40KM = 2.8E7;// [1/м^3] (trifinov rf-plasma)
 const double ATMOSPHERE_TEMPERATURE_40KM = 250.0;// [К]
 const double ATMOSPHERE_DENSITY_40KM = 0.003851;// [кг/м^3]
 
@@ -93,6 +99,11 @@ struct UserData{
 	double V_SQR;
 };
 
+UserData G_userdata[NUM_PROC];
+
+
+
+
 
 //accumulator acc_U0;
 //accumulator acc_U1;
@@ -138,26 +149,26 @@ int main(){
 	ipar[6] = 0;
 	ipar[7] = 0;//TODO move into separate function
 
-	omp_set_num_threads(2);
+	omp_set_num_threads(NUM_PROC);
 
 	VtiSaver3D vtiSaver;
 	CImgSaver2D cimgSaver;
 
 
-    double Nx=256;
-    double Ny=257;
-    double Nz=20;
+    double Nx=128;
+    double Ny=128 + 1;
+    double Nz=40;
     double Nt=2000;
 
     double SOURCE_IX = (int)(Nx*0.1)+0.5;
     double SOURCE_IY = (int)(Ny*0.5)+0.5;
     double SOURCE_IZ = Nz/2;
 
-    double IMPULSE_FREQ = 3e8;
+    double IMPULSE_FREQ = chi;//3e8;
     double IMPULSE_TIME = 1.0/IMPULSE_FREQ;
     double IMPULSE_LENGTH = C*IMPULSE_TIME;
 
-    double E_AMPLITUDE=1e6;
+    double E_AMPLITUDE=1e7;
     double H_AMPLITUDE=E_AMPLITUDE/VACUUM_WAVE_RESISTIVITY;
 
 	cimgSaver.setValueRange(-2.0*H_AMPLITUDE , 2.0*H_AMPLITUDE);
@@ -466,7 +477,7 @@ int main(){
 	        double KZ = 0;
 	        double KY = 0;
 
-	        int PAD_SIZE_Y = 100;
+	        int PAD_SIZE_Y = 20;
 	        int PAD_SIZE_Z = 5;
 
 	        for(double iz=SOURCE_IZ-PAD_SIZE_Z;iz<=SOURCE_IZ+PAD_SIZE_Z;iz++)
@@ -478,11 +489,12 @@ int main(){
 	                double DR = length(DZ,DY);
 
 	                //double sourceHz=H_AMPLITUDE*sin(2.0*M_PI*  (t/IMPULSE_TIME_WIDTH - KY*DY - KZ*DZ)) *gaussStep(t,IMPULSE_TIME_WIDTH*4,IMPULSE_TIME_WIDTH);
-	                sourceHz=H_AMPLITUDE * onePlusCosPulse(DR/(dx*length(PAD_SIZE_Y,PAD_SIZE_Z)) *M_PI) *sin(2.0*M_PI*  (t/IMPULSE_TIME - KY*DY - KZ*DZ)) *gaussStep(t,IMPULSE_TIME*1.5,IMPULSE_TIME);
 	                //sourceHz=H_AMPLITUDE *sin(2.0*M_PI*  (t/IMPULSE_TIME - KY*DY - KZ*DZ)) *gaussStep(t,IMPULSE_TIME*1.5,IMPULSE_TIME);
-
 	                //sourceHz=H_AMPLITUDE * cosPulse(DR/(dx*length(PAD_SIZE_Y,PAD_SIZE_Z)) * 0.5*M_PI) *sin(2.0*M_PI*  (t/IMPULSE_TIME - KY*DY - KZ*DZ)) *gaussStep(t,IMPULSE_TIME*1.5,IMPULSE_TIME);
 
+
+	                sourceHz=H_AMPLITUDE * onePlusCosPulse(DR/(dx*length(PAD_SIZE_Y,PAD_SIZE_Z)) *M_PI) *sin(2.0*M_PI*  (t/IMPULSE_TIME - KY*DY - KZ*DZ)) *gaussStep(t,IMPULSE_TIME*1.5,IMPULSE_TIME);
+	                double sourceHz = H_AMPLITUDE* onePlusCosPulse(DR/(dx*length(PAD_SIZE_Y,PAD_SIZE_Z)) *M_PI) *gauss(t,2.0*IMPULSE_TIME , IMPULSE_TIME);
 
 	                Hz(it+0.5, SOURCE_IX , iy , iz) = sourceHz;
 	            }
@@ -833,7 +845,7 @@ int main(){
 //			DBGVAL( Fx(it,ix+0.5,iy,iz)[4] );
 
 			//DISSIPATION STEP
-
+#ifdef RHS_ENABLE
 			const double n_e = HdVec3D::density(U(it,ix,iy,iz)) / cme;// концентрация электронов
 			const double WEt = HdVec3D::internalEnergyPerVolumeUnit(U(it,ix,iy,iz)) / n_e / Wevlt;//электронная температура [эВ]
 
@@ -864,16 +876,17 @@ int main(){
 			y[3] = vz;
 			y[4] = E_internal;//TODO
 
-			UserData* userdata = (UserData*)(&y[N]);
-			userdata->E_x = avg( Ex(it+1,ix,iy-0.5,iz-0.5) , Ex(it+1,ix,iy-0.5,iz+0.5) , Ex(it+1,ix,iy+0.5,iz-0.5) , Ex(it+1,ix,iy+0.5,iz+0.5) ); //TODO может сделать усреднение и по слоям времени?
-			userdata->E_y = avg( Ey(it+1,ix-0.5,iy,iz-0.5) , Ey(it+1,ix-0.5,iy,iz+0.5) , Ey(it+1,ix+0.5,iy,iz-0.5) , Ey(it+1,ix+0.5,iy,iz+0.5) ); //TODO может сделать усреднение и по слоям времени?
-			userdata->E_z = avg( Ez(it+1,ix-0.5,iy-0.5,iz) , Ez(it+1,ix-0.5,iy+0.5,iz) , Ez(it+1,ix+0.5,iy-0.5,iz) , Ez(it+1,ix+0.5,iy+0.5,iz) ); //TODO может сделать усреднение и по слоям времени?
+			int thnum = omp_get_thread_num();
+			//UserData* userdata = (UserData*)(&y[N]);
+			G_userdata[thnum].E_x = avg( Ex(it+1,ix,iy-0.5,iz-0.5) , Ex(it+1,ix,iy-0.5,iz+0.5) , Ex(it+1,ix,iy+0.5,iz-0.5) , Ex(it+1,ix,iy+0.5,iz+0.5) ); //TODO может сделать усреднение и по слоям времени?
+			G_userdata[thnum].E_y = avg( Ey(it+1,ix-0.5,iy,iz-0.5) , Ey(it+1,ix-0.5,iy,iz+0.5) , Ey(it+1,ix+0.5,iy,iz-0.5) , Ey(it+1,ix+0.5,iy,iz+0.5) ); //TODO может сделать усреднение и по слоям времени?
+			G_userdata[thnum].E_z = avg( Ez(it+1,ix-0.5,iy-0.5,iz) , Ez(it+1,ix-0.5,iy+0.5,iz) , Ez(it+1,ix+0.5,iy-0.5,iz) , Ez(it+1,ix+0.5,iy+0.5,iz) ); //TODO может сделать усреднение и по слоям времени?
 
-			userdata->H_x = avg( Hx(it+0.5,ix-0.5,iy,iz) , Hx(it+0.5,ix+0.5,iy,iz) , Hx(it+1.5,ix-0.5,iy,iz) , Hx(it+1.5,ix+0.5,iy,iz) );//TODO нужно ди усреднение по времени?
-			userdata->H_y = avg( Hy(it+0.5,ix,iy-0.5,iz) , Hy(it+0.5,ix,iy+0.5,iz) , Hy(it+1.5,ix,iy-0.5,iz) , Hy(it+1.5,ix,iy+0.5,iz) );//TODO нужно ди усреднение по времени?
-			userdata->H_z = avg( Hz(it+0.5,ix,iy,iz-0.5) , Hz(it+0.5,ix,iy,iz+0.5) , Hz(it+1.5,ix,iy,iz-0.5) , Hz(it+1.5,ix,iy,iz+0.5) );//TODO нужно ди усреднение по времени?
+			G_userdata[thnum].H_x = avg( Hx(it+0.5,ix-0.5,iy,iz) , Hx(it+0.5,ix+0.5,iy,iz) , Hx(it+1.5,ix-0.5,iy,iz) , Hx(it+1.5,ix+0.5,iy,iz) );//TODO нужно ди усреднение по времени?
+			G_userdata[thnum].H_y = avg( Hy(it+0.5,ix,iy-0.5,iz) , Hy(it+0.5,ix,iy+0.5,iz) , Hy(it+1.5,ix,iy-0.5,iz) , Hy(it+1.5,ix,iy+0.5,iz) );//TODO нужно ди усреднение по времени?
+			G_userdata[thnum].H_z = avg( Hz(it+0.5,ix,iy,iz-0.5) , Hz(it+0.5,ix,iy,iz+0.5) , Hz(it+1.5,ix,iy,iz-0.5) , Hz(it+1.5,ix,iy,iz+0.5) );//TODO нужно ди усреднение по времени?
 
-			userdata->V_SQR = sqr(vx,vy,vz);
+			G_userdata[thnum].V_SQR = sqr(vx,vy,vz);
 
 			double time=0;
 			double time_end=DT;
@@ -893,15 +906,19 @@ int main(){
 
 			//dodesol(ipar,&N,&time,&time_end,y,rhs,NULL,&h,&hm,&ep,&tr,dpar,kd,&ierr);
 
+	    	double HD_N = 100.0;
+	    	double DT_HD = DT/HD_N;
 
 	    	double f[N];
 	    	rhs(&N,NULL,y,f);
 
-	    	y[0] += f[0]*DT;
-	    	y[1] += f[1]*DT;
-	    	y[2] += f[2]*DT;
-	    	y[3] += f[3]*DT;
-	    	y[4] += f[4]*DT;
+	    	for(int i=0;i<HD_N;i++) {
+	    	    y[0] += f[0]*DT;
+	    	    y[1] += f[1]*DT;
+	    	    y[2] += f[2]*DT;
+	    	    y[3] += f[3]*DT;
+	    	    y[4] += f[4]*DT;
+	    	}
 
 			double rho=y[0]*cme;
 			double wx=y[1];
@@ -910,7 +927,7 @@ int main(){
 			double TE=y[4] * y[0];
 
 			U(it+1,ix,iy,iz) = HdVec3D::fromDesityVelocityInternalEnergyPerVolumeUnit(rho,wx,wy,wz,TE);
-
+#endif
 
 //			DBGLN("\n\nafter dissipation");
 //
@@ -970,7 +987,7 @@ int main(){
 			*/
 		}
 
-	    if (it<20 || isEveryNth(it, 10)) {
+	    if (false/*it<10 || isEveryNth(it, 10)*/) {
 
 	    	vtiSaver.save(Hx[it+0.5],frame("Hx_",it,"vti"));
 	    	vtiSaver.save(Hy[it+0.5],frame("Hy_",it,"vti"));
@@ -980,12 +997,16 @@ int main(){
 	    	vtiSaver.save(Ey[it+0.5],frame("Ey_",it,"vti"));
 			vtiSaver.save(Ez[it+0.5],frame("Ez_",it,"vti"));
 
-			vtiSaver.save(U[it],frame("n_",it,"vti"),GRID3D_CALCULATOR{
-				return U(it,ix,iy,iz)[0];
+			vtiSaver.save(U[it],frame("density_",it,"vti"),GRID3D_CALCULATOR{
+				return HdVec3D::density( U(it,ix,iy,iz) );
 			});
 
-			vtiSaver.save(U[it],frame("E_",it,"vti"),GRID3D_CALCULATOR{
-				return U(it,ix,iy,iz)[4];
+            vtiSaver.save(U[it],frame("pressure_",it,"vti"),GRID3D_CALCULATOR{
+                return HdVec3D::pressure( U(it,ix,iy,iz) );
+            });
+
+			vtiSaver.save(U[it],frame("logT_",it,"vti"),GRID3D_CALCULATOR{
+				return log(J_TO_EV(HdVec3D::internalEnergyPerMassUnit(U(it,ix,iy,iz)) * cme));
 			});
 
 		}
@@ -1000,44 +1021,51 @@ int main(){
 }
 
 
+
 void rhs(int *ptrN,double *t,double *u,double *f){
-	int N = *ptrN;
 
-	double n_e = u[0];
+    int N = *ptrN;
 
-	double V_x = u[1];
-	double V_y = u[2];
-	double V_z = u[3];
+    double n_e = u[0];
 
-	double Et = u[4];//тепловая энергия одного электрона [Дж]
-	double WEt = J_TO_EV(Et);//тепловая энергия одного электрона [эВ]
+    double V_x = u[1];
+    double V_y = u[2];
+    double V_z = u[3];
 
-//	DBGVAL(WEt);
+    double Et = u[4];//тепловая энергия одного электрона [Дж]
+    double WEt = J_TO_EV(Et);//тепловая энергия одного электрона [эВ]
+    double WEfull = WEt + ELECTRON_MASS*sqr(V_x,V_y,V_z)/2.0;//полная энергия одного электрона [эВ]
 
-	const double n_i = n_e; //концентрация положительных ионов [м^-3] TODO why n_i ~= n_e ?
+//    DBGVAL(WEt);
+
+    const double n_i = n_e; //концентрация положительных ионов [м^-3] TODO why n_i ~= n_e ?
 
     const double n_all = ATMOSPHERE_DENSITY_40KM / AVERAGE_AIR_ION_MASS;
-	const double n_O2 = ATMOSPHERE_O2_CONCENTRATION_40KM;
-	const double n = n_all - n_O2; //концентрация нейтралов + положительных ионов TODO[] отсылка к Ступицкому
-	const double n_0 = n - n_i;//т.к n = n_i + n_0 (такие обозначения)
+    const double n_O2 = ATMOSPHERE_O2_CONCENTRATION_40KM;
+    const double n = n_all - n_O2; //концентрация нейтралов + положительных ионов TODO[] отсылка к Ступицкому
+    const double n_0 = n - n_i;//т.к n = n_i + n_0 (такие обозначения)
 
 
-	const UserData* userdata = (UserData*)(&u[N]);
+    //const UserData* userdata = (UserData*)(&u[N]);
+    //const UserData userdata = (UserData*)(&u[N]);
 
-    const double E_x = userdata->E_x;
-    const double E_y = userdata->E_y;
-    const double E_z = userdata->E_z;
+    int thnum = omp_get_thread_num();
 
-    const double H_x = userdata->H_x;
-    const double H_y = userdata->H_y;
-    const double H_z = userdata->H_z;
+    const double E_x = G_userdata[thnum].E_x;
+    const double E_y = G_userdata[thnum].E_y;
+    const double E_z = G_userdata[thnum].E_z;
 
-    const double V_SQR = userdata->V_SQR;
+    const double H_x = G_userdata[thnum].H_x;
+    const double H_y = G_userdata[thnum].H_y;
+    const double H_z = G_userdata[thnum].H_z;
+
+    //const double V_SQR = userdata->V_SQR;
+    const double V_SQR = sqr(u[1],u[2],u[3]);
 
     const double m_e = ELECTRON_MASS;
     const double m = m_e;
     const double M = AVERAGE_AIR_ION_MASS;
-    const double e = ELECTRON_MASS;
+    const double e = ELECTRON_CHARGE;
 
 
     const double f_ = 11.67*(1.0+0.64*(WEt-11.35)/(88.65+WEt))*(1.0-exp(-0.0083*(WEt-11.35)));// [безразмерно]
@@ -1063,7 +1091,7 @@ void rhs(int *ptrN,double *t,double *u,double *f){
 
     const double sigma_e0 = 12.47 * PI_A0_SQR * (0.4 + 0.84*WEt/(0.5 + WEt));// [м^2]
 
-    const double v_ei = 16.0*sqrt(M_PI)/3.0 * quad( COULUMB_TO_CGS(cze) ) * L * n_i * sqr(Z)/sqrt(m_e)/pow(2.0*kT,3.0/2.0);
+    const double v_ei = 16.0*sqrt(M_PI)/3.0 * quad( COULUMB_TO_CGS(cze) ) * L * (n_i*1E-6) * sqr(Z)/sqrt(KG_TO_G(m_e))/pow(2.0*kT,3.0/2.0);//TODO перевести всё в CGS!!! //was ~1E-83
     const double v_e0 = 8.0*sigma_e0/3.0/sqrt(M_PI)*sqrt(2.0* EV_TO_J(kT)/m_e)*n_0;
 
 
@@ -1071,7 +1099,7 @@ void rhs(int *ptrN,double *t,double *u,double *f){
 
     const double fi = 0.64 + 0.11*log(I/kT);//TODO natural or decimal
     const double S_ee = -(I+3.0/2.0*kT)*Wevlt*(n_e*n_0*j_0e - sqr(n_e)*n_i*j_ei)+
-    		            + (3.0/2.0-fi)*kT*Wevlt*n_e*n_i*j_v - 3.0/2.0*kT*Wevlt*j_g*n_e*n_i - 3.0/2.0*kT*Wevlt*j_p*n_e*n_O2*n;//TODO заменить Wevlt на EV_TO_J()
+                        + (3.0/2.0-fi)*kT*Wevlt*n_e*n_i*j_v - 3.0/2.0*kT*Wevlt*j_g*n_e*n_i - 3.0/2.0*kT*Wevlt*j_p*n_e*n_O2*n;//TODO заменить Wevlt на EV_TO_J()
 
     const double WEt_ = 0.025;//TODO что это? сколько это градусов?
     const double Q_ei = -2.0 * v_ei*n_e*(WEt-WEt_)*Wevlt*m_e/M + m*V_SQR/2.0;//TODO заменить Wevlt на EV_TO_J() ? порог??? WEt должно быть > WEt_
@@ -1084,14 +1112,76 @@ void rhs(int *ptrN,double *t,double *u,double *f){
     const double Q_e = Q_ei + Q_e0;
     //const double Q_w = e*n_e*(abs(E_x*V_x) + abs(E_y*V_y) + abs(E_z*V_z));//TODO не симметрично относительно поворота СК, что имел ввиду Ступитский?
     //const double Q_w = e*n_e*(E_x*V_x + E_y*V_y + E_z*V_z);//TODO не симметрично относительно поворота СК, размерность нормальная? [Дж/с/м^3]
-    const double Q_w = e*n_e*sqrt( sqr(E_x*V_x , E_y*V_y , E_z*V_z) );
+    //const double Q_w = e*n_e*sqrt( sqr(E_x*V_x , E_y*V_y , E_z*V_z) );
+    //const double Q_w = e*n_e*( E_x*V_x + E_y*V_y + E_z*V_z );
+    const double Q_w = -e*n_e*( E_x*V_x + E_y*V_y + E_z*V_z );
+    DBGVAL(Q_w);
+    DBGVAL(e*n_e*E_x*V_x  /n_e);
+    DBGVAL(e*n_e*E_y*V_y  /n_e);
+    DBGVAL(e*n_e*E_z*V_z  /n_e);
 
 
-	f[0] = S_e;
+
+
+
+    f[0] = S_e;
     f[1] = -(v_ei+v_e0)*V_x  -  e*E_x/m  +  e*MU*MU0/m*V_z*H_y - e*MU*MU0/m*V_y*H_z;
     f[2] = -(v_ei+v_e0)*V_y  -  e*E_y/m  +  e*MU*MU0/m*V_x*H_z - e*MU*MU0/m*V_z*H_x;
     f[3] = -(v_ei+v_e0)*V_z  -  e*E_z/m  +  e*MU*MU0/m*V_y*H_x - e*MU*MU0/m*V_x*H_y;
     f[4] = (S_ee + Q_e + Q_w)/n_e;
+
+
+/*
+    gridM_N_V_ei_Vx(i) = -(v_ei     ) ;//*V_x;
+    gridM_N_V_e0_Vx(i) = -(     v_e0);//*V_x;
+    grid_e_Ex_m(i) = -e*E_y/m;
+    grid_e_MU_MU0_m_Vz_Hy(i) = e*MU*MU0/m*V_z*H_y;
+    grid_e_MU_MU0_m_Vy_Hz(i) = -e*MU*MU0/m*V_y*H_z;
+*/
+
+    //csv.addRow("time",*t);
+    //csv.ADD_ROW(-(v_ei     )*V_x);
+    //csv.ADD_ROW(-(     v_e0)*V_x);
+    //csv.ADD_ROW(-e*E_y/m );
+    //csv.ADD_ROW(+ e*MU*MU0/m*V_z*H_y);
+    //csv.ADD_ROW(- e*MU*MU0/m*V_y*H_z);
+    //csv.ADD_ROW(V_x);
+    //csv.ADD_ROW(V_y);
+//    csv.ADD_ROW(n_i);
+//    csv.ADD_ROW(n_0);
+//    csv.ADD_ROW(n);
+//    csv.ADD_ROW(n_e);
+//
+//    csv.ADD_ROW(j_0e);
+//    csv.ADD_ROW(j_g);
+//    csv.ADD_ROW(j_v);
+//    csv.ADD_ROW(j_p);
+//    csv.ADD_ROW(j_ei);
+//
+//    csv.ADD_ROW(sgm);
+//    csv.ADD_ROW(sigma_e0);
+//    csv.ADD_ROW(f_);
+//
+//    csv.ADD_ROW(v_ei);
+//    csv.ADD_ROW(v_e0);
+//    //csv.ADD_ROW(v_eO2);
+//
+//    csv.ADD_ROW(S_ee);
+//    csv.ADD_ROW(Q_e);
+//    csv.ADD_ROW(Q_w);
+
+
+
+
+
+    DBGVAL(-(v_ei )*V_y);
+    DBGVAL(-(     v_e0)*V_y);
+    DBGVAL(-  e*E_y/m);
+    DBGVAL(-E_y);
+    DBGVAL(e);
+    DBGVAL(m);
+
+
 
     #if(0)
     if((isnan(u[0])==0) && (isinf(u[0])==0)) acc_U0(u[0]);
@@ -1107,71 +1197,84 @@ void rhs(int *ptrN,double *t,double *u,double *f){
     if((isnan(f[4])==0) && (isinf(f[4])==0)) acc_f4(f[4]);
     #endif
 
+#if(0)
+if((isnan(u[0])!=0) || (isinf(u[0])!=0)) return (1);
+if((isnan(u[1])!=0) || (isinf(u[1])!=0)) return (2);
+if((isnan(u[2])!=0) || (isinf(u[2])!=0)) return (3);
+if((isnan(u[3])!=0) || (isinf(u[3])!=0)) return (4);
+if((isnan(u[4])!=0) || (isinf(u[4])!=0)) return (5);
+
+if((isnan(f[0])!=0) || (isinf(f[0])!=0)) return (6);
+if((isnan(f[1])!=0) || (isinf(f[1])!=0)) {
+    std::cout<< "testtest" << std::endl;
+    std::cout<< "testtest2" << std::endl;
+    return (7);
+}
+if((isnan(f[2])!=0) || (isinf(f[2])!=0)) return (8);
+if((isnan(f[3])!=0) || (isinf(f[3])!=0)) return (9);
+if((isnan(f[4])!=0) || (isinf(f[4])!=0)) return (10);
+if(u[4]<0)return 11;
+#endif
+
     #if(1)
-//    DBGVAL(dt / *t);
+    DBGVAL(dt / *t);
 
-//    DBGVAL(j_0e );
-//    DBGVAL(n_e);
-//    DBGVAL(n_0);
-//
-//    DBGVAL(- j_ei*sqr(n_e)*n_i);
-//    DBGVAL(j_0e*n_e*n_0);
-//    DBGVAL(- j_v*n_e*n_i);
-//    DBGVAL(- j_g*n_e*n_i);
-//    DBGVAL(- j_p*n_e*n_O2*n);
-//
+    DBGVAL(j_0e );
+    DBGVAL(n_e);
+    DBGVAL(n_0);
 
-//    DBGVAL(v_ei);
-//    DBGVAL(v_e0);
-//    DBGVAL(-(v_ei+v_e0)*V_x);
-//    DBGVAL(-  e*E_x/m);
-//    DBGVAL(e*MU*MU0/m*V_z*H_y);
-//    DBGVAL(- e*MU*MU0/m*V_z*H_x);
+    DBGVAL(- j_ei*sqr(n_e)*n_i);
+    DBGVAL(j_0e*n_e*n_0);
+    DBGVAL(- j_v*n_e*n_i);
+    DBGVAL(- j_g*n_e*n_i);
+    DBGVAL(- j_p*n_e*n_O2*n);
 
 
+    DBGVAL(v_ei);
+    DBGVAL(v_e0);
+    DBGVAL(-(v_ei+v_e0)*V_x);
+    DBGVAL(-  e*E_x/m);
+    DBGVAL(e*MU*MU0/m*V_z*H_y);
+    DBGVAL(- e*MU*MU0/m*V_z*H_x);
 
 
 
 
+    DBGVAL(-(I+3.0/2.0*kT)*Wevlt*(n_e*n_0*j_0e  ));
+    DBGVAL(-(I+3.0/2.0*kT)*Wevlt*(             - sqr(n_e)*n_i*j_ei));
+    DBGVAL((3.0/2.0-fi)*kT*Wevlt*n_e*n_i*j_v);
+    DBGVAL(-3.0/2.0*kT*Wevlt*j_g*n_e*n_i);
+    DBGVAL(-3.0/2.0*kT*Wevlt*j_p*n_e*n_O2*n);//TODO заменить Wevlt на EV_TO_J()
 
 
+    DBGVAL(S_ee/n_e);
+    DBGVAL(Q_e/n_e);
+    DBGVAL(Q_w/n_e);
 
+    DBGVAL(Q_ei/n_e);
+    DBGVAL(Q_e0/n_e);
 
+    DBGVAL(u[0]);
+    DBGVAL(u[1]);
+    DBGVAL(u[2]);
+    DBGVAL(u[3]);
+    DBGVAL(u[4]);
+    DBGVAL(J_TO_EV(u[4]));
 
-//    DBGVAL(-(I+3.0/2.0*kT)*Wevlt*(n_e*n_0*j_0e  ));
-//    DBGVAL(-(I+3.0/2.0*kT)*Wevlt*(             - sqr(n_e)*n_i*j_ei));
-//    DBGVAL((3.0/2.0-fi)*kT*Wevlt*n_e*n_i*j_v);
-//    DBGVAL(-3.0/2.0*kT*Wevlt*j_g*n_e*n_i);
-//    DBGVAL(-3.0/2.0*kT*Wevlt*j_p*n_e*n_O2*n);//TODO заменить Wevlt на EV_TO_J()
-//
-//
-//    DBGVAL(S_ee/n_e);
-//    DBGVAL(Q_e/n_e);
-//    DBGVAL(Q_w/n_e);
-//
-//    DBGVAL(Q_ei/n_e);
-//    DBGVAL(Q_e0/n_e);
-//
-//    DBGVAL(u[0]);
-//    DBGVAL(u[1]);
-//    DBGVAL(u[2]);
-//    DBGVAL(u[3]);
-//    DBGVAL(u[4]);
-//
-//    DBGVAL(f[0]);
-//    DBGVAL(f[1]);
-//    DBGVAL(f[2]);
-//    DBGVAL(f[3]);
-//    DBGVAL(f[4]);
-//
-//    DBGVAL(f[0]*dt);
-//    DBGVAL(f[1]*dt);
-//    DBGVAL(f[2]*dt);
-//    DBGVAL(f[3]*dt);
-//    DBGVAL(f[4]*dt);
-//
-//    DBGVAL(dt);
-//
+    DBGVAL(f[0]);
+    DBGVAL(f[1]);
+    DBGVAL(f[2]);
+    DBGVAL(f[3]);
+    DBGVAL(f[4]);
+
+    DBGVAL(f[0]*dt);
+    DBGVAL(f[1]*dt);
+    DBGVAL(f[2]*dt);
+    DBGVAL(f[3]*dt);
+    DBGVAL(f[4]*dt);
+
+    DBGVAL(dt);
+
 //    pressAnyKey();
 
 
@@ -1209,4 +1312,5 @@ void rhs(int *ptrN,double *t,double *u,double *f){
     #endif
 
 
+//    return 0;
 }
