@@ -155,7 +155,9 @@
 	</target>
 	
 	<target name="test">
-			<echo message="err this is mega err"/>
+		<exec executable="printenv" failonerror="true"/>
+		<echo message="err this is mega err"/>
+		<echo message="${ICC_LIBRARY_PATH}"/>
     </target>
 
 
