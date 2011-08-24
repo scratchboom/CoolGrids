@@ -5,12 +5,12 @@
 		<attribute name="mainfile"/>
 		<sequential>
 			<mkdir dir="./bin/@{mainfile}"/>
+			<!-- -g -O0 -->
 			<exec executable="icpc" failonerror="true">
 				<arg line="-U__GXX_EXPERIMENTAL_CXX0X__
 					       @{mainfile}.cpp
 					       -o ./bin/@{mainfile}/@{mainfile}.exe
-					       -g
-					
+					       
 					       -I./3rd-party/boost/1.44.0
 					       -I./3rd-party/MTL/4.0.7536/include
 					       -I./3rd-party/CImg/1.4.4
@@ -33,7 +33,7 @@
 					
 					-lmpich
 					
-					-O0
+					
 					
 					-mkl
 					
