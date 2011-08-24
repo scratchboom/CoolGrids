@@ -4,21 +4,20 @@ int main(){
 
 	GnuPlotSaver1D gnuPlotSaver;
 	gnuPlotSaver.setLineColor("#FF0000")
-			    .setValueRange(0.0,5.0)
+			    .setValueRange(0.0,1.2)
 			    .setSaveToPNG(true);
 
 
-	double N=512;
-    double NT=50000;
+	double N=100;
+    double NT=300;
 
 	double S=1.0;
 	double dx=S/N;
 
 	double SGM=0.5;
 	double MAX_LAMBDA=5.0;
-	double dt=dx/MAX_LAMBDA * SGM;
-
-	soundVelocity(GAMMA,10,10);
+	//double dt=dx/MAX_LAMBDA * SGM;
+	double dt=dx * 0.3;
 
 	TimedGrid1D<Vector3D> U("Hydrodynamics vector");
 	TimedGrid1D<Vector3D> F("Flow vector");
@@ -36,8 +35,8 @@ int main(){
 	F.fill(Vector3D(3));
 
 	U[0].iterateWhole(GRID1D_ITERATOR{
-		if(ix<N/2) U(0,ix) = HdVec1D::fromDensityPressureVelocity(2,2,0);
-		else U(0,ix) = HdVec1D::fromDensityPressureVelocity(1,1,0);
+		if(ix<N/2) U(0,ix) = HdVec1D::fromDensityPressureVelocity(1,1,0);
+		else U(0,ix) = HdVec1D::fromDensityPressureVelocity(0.125,0.1,0);
 	});
 
 	for(double it=0;it<NT;it++){
@@ -74,12 +73,35 @@ int main(){
 		});
 
 		//transparent
-		/*
-		F(it,F.minIndexX)=F(it,F.minIndexX+1);
-	    F(it,F.maxIndexX)=F(it,F.maxIndexX-1);
-	    */
+		//F(it,F.minIndexX)=F(it,F.minIndexX+1);
+	    //F(it,F.maxIndexX)=F(it,F.maxIndexX-1);
+		//reflexive
+		 {
+			Vector3D u = U(it, 0.5);
+
+			double rho = HdVec1D::density(u);
+			double p = HdVec1D::pressure(u);
+			double v = HdVec1D::velocityX(u);
+
+			Vector3D uw = HdVec1D::fromDensityPressureVelocity(rho, p, v);
+
+			F(it, 0) = HdFlowVec1D::X::riemannFlux(uw, u);
+		}
+		{
+			Vector3D u = U(it, N - 0.5);
+
+			double rho = HdVec1D::density(u);
+			double p = HdVec1D::pressure(u);
+			double v = HdVec1D::velocityX(u);
+
+			Vector3D uw = HdVec1D::fromDensityPressureVelocity(rho, p, v);
+
+			F(it, N) = HdFlowVec1D::X::riemannFlux(u, uw);
+		}
+
 
 		//reflexive
+	    /*
 		{
 			Vector3D u = U(it,  0.5);
 
@@ -101,7 +123,7 @@ int main(){
 			Vector3D uw = HdVec1D::fromDensityPressureVelocity(rho, p, -v);
 
 			F(it, N) = HdFlowVec1D::X::riemannFlux(u, uw);
-		}
+		}*/
 
 		U[it+1].iterateWhole(GRID1D_ITERATOR {
 			U(it+1,ix)=U(it,ix) - dt/dx*(F(it,ix+0.5)-F(it,ix-0.5));
@@ -122,7 +144,7 @@ int main(){
 
 
 
-		if(isEveryNth(it,50)){
+		if(isEveryNth(it,10)){
 
 			gnuPlotSaver.save(U[it],frame("density_",it,"plot"),GRID1D_CALCULATOR{
 				return HdVec1D::density(U(it,ix));

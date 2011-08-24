@@ -4,7 +4,7 @@ int main(){
 
 	GnuPlotSaver1D gnuPlotSaver;
 	gnuPlotSaver.setLineColor("#FF0000")
-			    .setValueRange(0.0,12.0)
+			    .setValueRange(0.0,1.2)
 			    .setSaveToPNG(true);
 
 
@@ -18,7 +18,6 @@ int main(){
 	double MAX_LAMBDA=5.0;
 	double dt=dx/MAX_LAMBDA * SGM;
 
-	soundVelocity(GAMMA,10,10);
 
 	//Lax-Friedrichs method
 	TimedGrid1D<Vec3D> U("Hydrodynamics vector");
@@ -37,12 +36,15 @@ int main(){
 	F[0].clear();
 
 	U[0].iterateWhole(GRID1D_ITERATOR{
-		if(ix<N/2) U(0,ix) = HydroDynVec::from_Density_Pressure_Velocity(10,10,0);
-		else U(0,ix) = HydroDynVec::from_Density_Pressure_Velocity(1,1,0);
+		if(ix<N/2) U(0,ix) = HydroDynVec::from_Density_Pressure_Velocity(1,1,0);
+		else U(0,ix) = HydroDynVec::from_Density_Pressure_Velocity(0.125,0.1,0);
 	});
 
 	for(double it=0;it<NT;it++){
 		DBGVAL(it);
+
+		U(it,U.minIndexX)=U(it,U.minIndexX+1);
+	    U(it,U.maxIndexX)=U(it,U.maxIndexX-1);
 
 		F[it].iterateInternal(GRID1D_ITERATOR{
 
@@ -82,8 +84,6 @@ int main(){
 			//DBGVAL(toString(F(it,ix)));
 		});
 
-		F(it,F.minIndexX)=F(it,F.minIndexX+1);
-	    F(it,F.maxIndexX)=F(it,F.maxIndexX-1);
 
 		U[it+1].iterateWhole(GRID1D_ITERATOR{
 			U(it+1,ix)=U(it,ix) - dt/dx*(F(it,ix+0.5)-F(it,ix-0.5));
@@ -97,21 +97,21 @@ int main(){
 				return HydroDynVec::density(U(it,ix));
 			});
 
-			gnuPlotSaver.save(U[it],frame("pressure_",it,"plot"),GRID1D_CALCULATOR{
-				return HydroDynVec::pressure(U(it,ix));
-			});
-
-			gnuPlotSaver.save(U[it],frame("velocityX_",it,"plot"),GRID1D_CALCULATOR{
-				return HydroDynVec::velocityX(U(it,ix));
-			});
-
-			gnuPlotSaver.save(U[it],frame("Energy_",it,"plot"),GRID1D_CALCULATOR{
-				return HydroDynVec::fullEnergyPerVolumeUnit(U(it,ix));
-			});
-
-			gnuPlotSaver.save(F[it],frame("Flow_",it,"plot"),GRID1D_CALCULATOR{
-				return F(it,ix)[0];
-			});
+//			gnuPlotSaver.save(U[it],frame("pressure_",it,"plot"),GRID1D_CALCULATOR{
+//				return HydroDynVec::pressure(U(it,ix));
+//			});
+//
+//			gnuPlotSaver.save(U[it],frame("velocityX_",it,"plot"),GRID1D_CALCULATOR{
+//				return HydroDynVec::velocityX(U(it,ix));
+//			});
+//
+//			gnuPlotSaver.save(U[it],frame("Energy_",it,"plot"),GRID1D_CALCULATOR{
+//				return HydroDynVec::fullEnergyPerVolumeUnit(U(it,ix));
+//			});
+//
+//			gnuPlotSaver.save(F[it],frame("Flow_",it,"plot"),GRID1D_CALCULATOR{
+//				return F(it,ix)[0];
+//			});
 
 		}
 
