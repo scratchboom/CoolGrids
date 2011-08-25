@@ -155,9 +155,9 @@ int main(){
 	CImgSaver2D cimgSaver;
 
 
-    double Nx=128;
-    double Ny=128 + 1;
-    double Nz=40;
+    double Nx=256;
+    double Ny=256 + 1;
+    double Nz=20;
     double Nt=2000;
 
     double SOURCE_IX = (int)(Nx*0.1)+0.5;
@@ -196,7 +196,7 @@ int main(){
 	double Sz= dz*Nz;
 	double T=1.0;
 
-    double DT = 0.5*dx/C;
+    double DT = 0.4*dx/C;
     dt = DT;//TODO remove global dt
 
 
@@ -521,10 +521,10 @@ int main(){
 	                );
 	            */
 
-				const double n_e = avg( HdVec3D::density(U(it,ix,iy-0.5,iz-0.5)) , HdVec3D::density(U(it,ix,iy-0.5,iz+0.5)) , HdVec3D::density(U(it,ix,iy+0.5,iz-0.5)) , HdVec3D::density(U(it,ix,iy+0.5,iz+0.5)) ); // [1/m^3]
-				const double V_x = avg( HdVec3D::velocityX(U(it,ix,iy-0.5,iz-0.5)) , HdVec3D::velocityX(U(it,ix,iy-0.5,iz+0.5)) , HdVec3D::velocityX(U(it,ix,iy+0.5,iz-0.5)) , HdVec3D::velocityX(U(it,ix,iy+0.5,iz+0.5)) );
+//				const double n_e = avg( HdVec3D::density(U(it,ix,iy-0.5,iz-0.5)) , HdVec3D::density(U(it,ix,iy-0.5,iz+0.5)) , HdVec3D::density(U(it,ix,iy+0.5,iz-0.5)) , HdVec3D::density(U(it,ix,iy+0.5,iz+0.5)) ); // [1/m^3]
+//				const double V_x = avg( HdVec3D::velocityX(U(it,ix,iy-0.5,iz-0.5)) , HdVec3D::velocityX(U(it,ix,iy-0.5,iz+0.5)) , HdVec3D::velocityX(U(it,ix,iy+0.5,iz-0.5)) , HdVec3D::velocityX(U(it,ix,iy+0.5,iz+0.5)) );
 
-	            const double jx = cze * V_x * n_e;// [A/м^2]
+	            const double jx = 0;//cze * V_x * n_e;// [A/м^2]
 
 	            Ex(it + 1, ix, iy, iz) = Ex(it, ix, iy, iz) +
 	            		DT/EPS0/EPS*( (Hz(it+0.5, ix, iy+0.5, iz) - Hz(it+0.5, ix, iy - 0.5, iz)) / dy
@@ -550,10 +550,10 @@ int main(){
 	                );
 	            */
 
-	            const double n_e = avg( HdVec3D::density(U(it,ix-0.5,iy,iz-0.5)), HdVec3D::density(U(it,ix-0.5,iy,iz+0.5)) , HdVec3D::density(U(it,ix+0.5,iy,iz-0.5)) , HdVec3D::density(U(it,ix+0.5,iy,iz+0.5))); // [1/m^3]
-	            const double V_y = avg( HdVec3D::velocityY(U(it,ix-0.5,iy,iz-0.5)) , HdVec3D::velocityY(U(it,ix-0.5,iy,iz+0.5)) , HdVec3D::velocityY(U(it,ix+0.5,iy,iz-0.5)) , HdVec3D::velocityY(U(it,ix+0.5,iy,iz+0.5)));
+//	            const double n_e = avg( HdVec3D::density(U(it,ix-0.5,iy,iz-0.5)), HdVec3D::density(U(it,ix-0.5,iy,iz+0.5)) , HdVec3D::density(U(it,ix+0.5,iy,iz-0.5)) , HdVec3D::density(U(it,ix+0.5,iy,iz+0.5))); // [1/m^3]
+//	            const double V_y = avg( HdVec3D::velocityY(U(it,ix-0.5,iy,iz-0.5)) , HdVec3D::velocityY(U(it,ix-0.5,iy,iz+0.5)) , HdVec3D::velocityY(U(it,ix+0.5,iy,iz-0.5)) , HdVec3D::velocityY(U(it,ix+0.5,iy,iz+0.5)));
 
-	            const double jy = cze * V_y * n_e;// [A/м^2]
+	            const double jy = 0;//cze * V_y * n_e;// [A/м^2]
 
 	            Ey(it+1, ix, iy, iz) = Ey(it, ix, iy, iz) +
 	            		DT/EPS0/EPS * (
@@ -581,10 +581,10 @@ int main(){
 	                );
 	            */
 
-	            const double n_e = avg( HdVec3D::density(U(it,ix-0.5,iy-0.5,iz)) , HdVec3D::density(U(it,ix-0.5,iy+0.5,iz)) ,HdVec3D::density(U(it,ix+0.5,iy-0.5,iz)) ,HdVec3D::density(U(it,ix+0.5,iy+0.5,iz))); // [1/m^3]
-	            const double V_z = avg( HdVec3D::velocityZ(U(it,ix-0.5,iy-0.5,iz)) , HdVec3D::velocityZ(U(it,ix-0.5,iy+0.5,iz)) ,HdVec3D::velocityZ(U(it,ix+0.5,iy-0.5,iz)) ,HdVec3D::velocityZ(U(it,ix+0.5,iy+0.5,iz)) );
+//	            const double n_e = avg( HdVec3D::density(U(it,ix-0.5,iy-0.5,iz)) , HdVec3D::density(U(it,ix-0.5,iy+0.5,iz)) ,HdVec3D::density(U(it,ix+0.5,iy-0.5,iz)) ,HdVec3D::density(U(it,ix+0.5,iy+0.5,iz))); // [1/m^3]
+//	            const double V_z = avg( HdVec3D::velocityZ(U(it,ix-0.5,iy-0.5,iz)) , HdVec3D::velocityZ(U(it,ix-0.5,iy+0.5,iz)) ,HdVec3D::velocityZ(U(it,ix+0.5,iy-0.5,iz)) ,HdVec3D::velocityZ(U(it,ix+0.5,iy+0.5,iz)) );
 
-	            const double jz = cze * V_z * n_e;// [A/м^2]
+	            const double jz = 0;//cze * V_z * n_e;// [A/м^2]
 
 
 	            Ez(it + 1, ix, iy, iz) =
@@ -764,7 +764,7 @@ int main(){
 	                );
 	        });
 
-
+#if(0)
 	     cout << "HD step" << endl;
 
 
@@ -845,7 +845,7 @@ int main(){
 //			DBGVAL( Fx(it,ix+0.5,iy,iz)[4] );
 
 			//DISSIPATION STEP
-#ifdef RHS_ENABLE
+
 			const double n_e = HdVec3D::density(U(it,ix,iy,iz)) / cme;// концентрация электронов
 			const double WEt = HdVec3D::internalEnergyPerVolumeUnit(U(it,ix,iy,iz)) / n_e / Wevlt;//электронная температура [эВ]
 
@@ -927,7 +927,7 @@ int main(){
 			double TE=y[4] * y[0];
 
 			U(it+1,ix,iy,iz) = HdVec3D::fromDesityVelocityInternalEnergyPerVolumeUnit(rho,wx,wy,wz,TE);
-#endif
+
 
 //			DBGLN("\n\nafter dissipation");
 //
@@ -940,7 +940,7 @@ int main(){
 //			DBGVAL( HdVec3D::internalEnergyPerVolumeUnit( U(it+1,ix,iy,iz) )  );
 
 		});
-
+#endif
 //		DBGLN("U0");
 //		printStats(acc_U0);
 //		DBGLN("U1");
@@ -953,7 +953,7 @@ int main(){
 //		printStats(acc_U4);
 
 
-		std::cout <<"\n\n" <<std::endl;
+		std::cout <<"\nherethere\n" <<std::endl;
 
 
 //		DBGLN("f0");
