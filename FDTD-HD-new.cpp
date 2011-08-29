@@ -2,7 +2,7 @@
 #include "GridsCommon.hpp"
 #include "intel_ode.h"
 
-//#define RHS_ENABLE 1
+#define RHS_ENABLE 1
 
 using namespace std;
 
@@ -43,8 +43,8 @@ const double Wevlt = 1.602176487E-19;// Джоулей в одном э­лек�
 
 const double cs = SPEED_OF_LIGHT;//Скороcть cвета, m/s [cs]
 
-const double cze = 1.602E-19;//Заряд электрона, Кл. [cze]
-const double cme = 9.10938215E-31;//Масса электрона, кг ? [cme]
+const double cze = ELECTRON_CHARGE;//Заряд электрона, Кл. [cze]
+const double cme = ELECTRON_MASS;//Масса электрона, кг ? [cme]
 const double ckb = 0.861E-4;//Константа Больцмана, э­В/Кград [ckb]
 const double ci = 14.86;//Константа I в ф-ле для сечения ионизации, эВ [ci]
 const double cih = 13.6;//Консттанта Ih в ф-ле для сечения ионизации, эВ [cih]
@@ -84,6 +84,13 @@ double NE0=ATMOSPHERE_ELECTRON_CONCENTRATION_40KM;
 double ATM_T=200.0; //температура атмоcферы K
 
 void rhs(int *ptrN,double *t,double *u,double *f);
+
+
+enum BorderMark{
+    NORAML,
+    TRANSPARENT,
+    BORDER
+};
 
 
 
@@ -155,14 +162,18 @@ int main(){
 	CImgSaver2D cimgSaver;
 
 
-    double Nx=256;
-    double Ny=256 + 1;
-    double Nz=20;
-    double Nt=2000;
+    double Nx=100;
+    double Ny=100 /*+ 1*/;
+    double Nz=100;
+    double Nt=10000;
 
-    double SOURCE_IX = (int)(Nx*0.1)+0.5;
+    double SOURCE_IX = (int)(Nx*0.5)+0.5;
     double SOURCE_IY = (int)(Ny*0.5)+0.5;
-    double SOURCE_IZ = Nz/2;
+    double SOURCE_IZ = (int)(Nz*0.5);
+
+    double J_SOURCE_IX = (int)(Nx*0.5);
+    double J_SOURCE_IY = (int)(Ny*0.5);
+    double J_SOURCE_IZ = (int)(Nz*0.5)+0.5;
 
     double IMPULSE_FREQ = chi;//3e8;
     double IMPULSE_TIME = 1.0/IMPULSE_FREQ;
@@ -170,6 +181,8 @@ int main(){
 
     double E_AMPLITUDE=1e7;
     double H_AMPLITUDE=E_AMPLITUDE/VACUUM_WAVE_RESISTIVITY;
+
+    double J_AMPLITUDE=1e6;// ~<= мега-Ампер
 
 	cimgSaver.setValueRange(-2.0*H_AMPLITUDE , 2.0*H_AMPLITUDE);
 
@@ -196,7 +209,7 @@ int main(){
 	double Sz= dz*Nz;
 	double T=1.0;
 
-    double DT = 0.4*dx/C;
+    double DT = 0.5*dx/C;
     dt = DT;//TODO remove global dt
 
 
@@ -234,7 +247,7 @@ int main(){
 	Ex.setIndexRangeY(0,Ny);
 	Ex.setIndexRangeZ(0,Nz);
 
-	Ex.setLayersCountToMaintain(5);
+	Ex.setLayersCountToMaintain(7);
 	Ex.build();
 
 
@@ -248,7 +261,7 @@ int main(){
 	Ey.setIndexRangeY(0.5,Ny-0.5);
     Ey.setIndexRangeZ(0,Nz);
 
-    Ey.setLayersCountToMaintain(5);
+    Ey.setLayersCountToMaintain(7);
 	Ey.build();
 
 
@@ -262,7 +275,7 @@ int main(){
 	Ez.setIndexRangeY(0 , Ny);
 	Ez.setIndexRangeZ(0.5 , Nz-0.5);
 
-	Ez.setLayersCountToMaintain(5);
+	Ez.setLayersCountToMaintain(7);
 	Ez.build();
 
 
@@ -277,7 +290,7 @@ int main(){
 	Hx.setIndexRangeY(0.5 , Ny-0.5);
 	Hx.setIndexRangeZ(0.5 , Nz-0.5);
 
-	Hx.setLayersCountToMaintain(2);
+	Hx.setLayersCountToMaintain(3);
 	Hx.build();
 
 
@@ -293,7 +306,7 @@ int main(){
 	Hy.setIndexRangeY(0   , Ny    );
     Hy.setIndexRangeZ(0.5 , Nz-0.5);
 
-    Hy.setLayersCountToMaintain(2);
+    Hy.setLayersCountToMaintain(3);
 	Hy.build();
 
 
@@ -309,7 +322,7 @@ int main(){
 	Hz.setIndexRangeY(0.5 , Ny-0.5);
 	Hz.setIndexRangeZ(0   , Nz    );
 
-	Hz.setLayersCountToMaintain(2);
+	Hz.setLayersCountToMaintain(3);
 	Hz.build();
 
 
@@ -388,6 +401,11 @@ int main(){
 	TimedGrid3D < Vector5D > Fy("Fy");
 	TimedGrid3D < Vector5D > Fz("Fz");
 
+	Grid3D < BorderMark > Markx("Mark x");
+	Grid3D < BorderMark > Marky("Mark y");
+	Grid3D < BorderMark > Markz("Mark z");
+
+
     U.setRangeT(0, T);
 	U.setRangeX(0.5 * dx, Sx - 0.5 * dx);
 	U.setRangeY(0.5 * dy, Sy - 0.5 * dy);
@@ -463,41 +481,36 @@ int main(){
 			double t = it * DT;
 
 
-	        double sourceHz = H_AMPLITUDE*sin(2.0*M_PI*t/IMPULSE_TIME)*gaussStep(t,IMPULSE_TIME*4,IMPULSE_TIME);
+	        double sourceHz = H_AMPLITUDE*gauss(t,2.0*IMPULSE_TIME , IMPULSE_TIME);
 
+	        double sourceJz = J_AMPLITUDE* /*sin(2.0*M_PI*  (t/IMPULSE_TIME))*/ gauss(t,2.0*IMPULSE_TIME , IMPULSE_TIME);
 
-	        //Hz(it+0.5, SOURCE_IX , SOURCE_IY , SOURCE_IZ) = sourceHz;
-	        cout << "sourceHz=" << sourceHz << endl;
+	        Hz(it+0.5, SOURCE_IX , SOURCE_IY , SOURCE_IZ) = H_AMPLITUDE*gauss(t,2.0*IMPULSE_TIME , IMPULSE_TIME);
 
-
-	        //double KZ=1;
-	        //double KY=0.5;
-
-
-	        double KZ = 0;
-	        double KY = 0;
-
-	        int PAD_SIZE_Y = 20;
-	        int PAD_SIZE_Z = 5;
-
-	        for(double iz=SOURCE_IZ-PAD_SIZE_Z;iz<=SOURCE_IZ+PAD_SIZE_Z;iz++)
-	            for(double iy=SOURCE_IY-PAD_SIZE_Y;iy<=SOURCE_IY+PAD_SIZE_Y;iy++){
-
-	                double DZ= (iz-SOURCE_IZ)*dz;
-	                double DY= (iy-SOURCE_IY)*dy;
-
-	                double DR = length(DZ,DY);
-
-	                //double sourceHz=H_AMPLITUDE*sin(2.0*M_PI*  (t/IMPULSE_TIME_WIDTH - KY*DY - KZ*DZ)) *gaussStep(t,IMPULSE_TIME_WIDTH*4,IMPULSE_TIME_WIDTH);
-	                //sourceHz=H_AMPLITUDE *sin(2.0*M_PI*  (t/IMPULSE_TIME - KY*DY - KZ*DZ)) *gaussStep(t,IMPULSE_TIME*1.5,IMPULSE_TIME);
-	                //sourceHz=H_AMPLITUDE * cosPulse(DR/(dx*length(PAD_SIZE_Y,PAD_SIZE_Z)) * 0.5*M_PI) *sin(2.0*M_PI*  (t/IMPULSE_TIME - KY*DY - KZ*DZ)) *gaussStep(t,IMPULSE_TIME*1.5,IMPULSE_TIME);
-
-
-	                sourceHz=H_AMPLITUDE * onePlusCosPulse(DR/(dx*length(PAD_SIZE_Y,PAD_SIZE_Z)) *M_PI) *sin(2.0*M_PI*  (t/IMPULSE_TIME - KY*DY - KZ*DZ)) *gaussStep(t,IMPULSE_TIME*1.5,IMPULSE_TIME);
-	                double sourceHz = H_AMPLITUDE* onePlusCosPulse(DR/(dx*length(PAD_SIZE_Y,PAD_SIZE_Z)) *M_PI) *gauss(t,2.0*IMPULSE_TIME , IMPULSE_TIME);
-
-	                Hz(it+0.5, SOURCE_IX , iy , iz) = sourceHz;
-	            }
+//	        double KZ = 0;
+//	        double KY = 0;
+//
+//	        int PAD_SIZE_Y = 20;
+//	        int PAD_SIZE_Z = 5;
+//
+//	        for(double iz=SOURCE_IZ-PAD_SIZE_Z;iz<=SOURCE_IZ+PAD_SIZE_Z;iz++)
+//	            for(double iy=SOURCE_IY-PAD_SIZE_Y;iy<=SOURCE_IY+PAD_SIZE_Y;iy++){
+//
+//	                double DZ= (iz-SOURCE_IZ)*dz;
+//	                double DY= (iy-SOURCE_IY)*dy;
+//
+//	                double DR = length(DZ,DY);
+//
+//	                //double sourceHz=H_AMPLITUDE*sin(2.0*M_PI*  (t/IMPULSE_TIME_WIDTH - KY*DY - KZ*DZ)) *gaussStep(t,IMPULSE_TIME_WIDTH*4,IMPULSE_TIME_WIDTH);
+//	                //sourceHz=H_AMPLITUDE *sin(2.0*M_PI*  (t/IMPULSE_TIME - KY*DY - KZ*DZ)) *gaussStep(t,IMPULSE_TIME*1.5,IMPULSE_TIME);
+//	                //sourceHz=H_AMPLITUDE * cosPulse(DR/(dx*length(PAD_SIZE_Y,PAD_SIZE_Z)) * 0.5*M_PI) *sin(2.0*M_PI*  (t/IMPULSE_TIME - KY*DY - KZ*DZ)) *gaussStep(t,IMPULSE_TIME*1.5,IMPULSE_TIME);
+//
+//
+//	                //sourceHz=H_AMPLITUDE * onePlusCosPulse(DR/(dx*length(PAD_SIZE_Y,PAD_SIZE_Z)) *M_PI) *sin(2.0*M_PI*  (t/IMPULSE_TIME - KY*DY - KZ*DZ)) *gaussStep(t,IMPULSE_TIME*1.5,IMPULSE_TIME);
+//	                double sourceHz = H_AMPLITUDE* onePlusCosPulse(DR/(dx*length(PAD_SIZE_Y,PAD_SIZE_Z)) *M_PI) *gauss(t,2.0*IMPULSE_TIME , IMPULSE_TIME);
+//
+//	                Hz(it+0.5, SOURCE_IX , iy , iz) = sourceHz;
+//	            }
 
 
 
@@ -521,11 +534,14 @@ int main(){
 	                );
 	            */
 
-//				const double n_e = avg( HdVec3D::density(U(it,ix,iy-0.5,iz-0.5)) , HdVec3D::density(U(it,ix,iy-0.5,iz+0.5)) , HdVec3D::density(U(it,ix,iy+0.5,iz-0.5)) , HdVec3D::density(U(it,ix,iy+0.5,iz+0.5)) ); // [1/m^3]
-//				const double V_x = avg( HdVec3D::velocityX(U(it,ix,iy-0.5,iz-0.5)) , HdVec3D::velocityX(U(it,ix,iy-0.5,iz+0.5)) , HdVec3D::velocityX(U(it,ix,iy+0.5,iz-0.5)) , HdVec3D::velocityX(U(it,ix,iy+0.5,iz+0.5)) );
+#ifdef RHS_ENABLE
+				const double n_e = avg( HdVec3D::density(U(it,ix,iy-0.5,iz-0.5)) , HdVec3D::density(U(it,ix,iy-0.5,iz+0.5)) , HdVec3D::density(U(it,ix,iy+0.5,iz-0.5)) , HdVec3D::density(U(it,ix,iy+0.5,iz+0.5)) ); // [1/m^3]
+				const double V_x = avg( HdVec3D::velocityX(U(it,ix,iy-0.5,iz-0.5)) , HdVec3D::velocityX(U(it,ix,iy-0.5,iz+0.5)) , HdVec3D::velocityX(U(it,ix,iy+0.5,iz-0.5)) , HdVec3D::velocityX(U(it,ix,iy+0.5,iz+0.5)) );
 
+				const double jx = cze * V_x * n_e;// [A/м^2]
+#else
 	            const double jx = 0;//cze * V_x * n_e;// [A/м^2]
-
+#endif
 	            Ex(it + 1, ix, iy, iz) = Ex(it, ix, iy, iz) +
 	            		DT/EPS0/EPS*( (Hz(it+0.5, ix, iy+0.5, iz) - Hz(it+0.5, ix, iy - 0.5, iz)) / dy
 	            				       -
@@ -550,11 +566,14 @@ int main(){
 	                );
 	            */
 
-//	            const double n_e = avg( HdVec3D::density(U(it,ix-0.5,iy,iz-0.5)), HdVec3D::density(U(it,ix-0.5,iy,iz+0.5)) , HdVec3D::density(U(it,ix+0.5,iy,iz-0.5)) , HdVec3D::density(U(it,ix+0.5,iy,iz+0.5))); // [1/m^3]
-//	            const double V_y = avg( HdVec3D::velocityY(U(it,ix-0.5,iy,iz-0.5)) , HdVec3D::velocityY(U(it,ix-0.5,iy,iz+0.5)) , HdVec3D::velocityY(U(it,ix+0.5,iy,iz-0.5)) , HdVec3D::velocityY(U(it,ix+0.5,iy,iz+0.5)));
+#ifdef RHS_ENABLE
+	            const double n_e = avg( HdVec3D::density(U(it,ix-0.5,iy,iz-0.5)), HdVec3D::density(U(it,ix-0.5,iy,iz+0.5)) , HdVec3D::density(U(it,ix+0.5,iy,iz-0.5)) , HdVec3D::density(U(it,ix+0.5,iy,iz+0.5))); // [1/m^3]
+	            const double V_y = avg( HdVec3D::velocityY(U(it,ix-0.5,iy,iz-0.5)) , HdVec3D::velocityY(U(it,ix-0.5,iy,iz+0.5)) , HdVec3D::velocityY(U(it,ix+0.5,iy,iz-0.5)) , HdVec3D::velocityY(U(it,ix+0.5,iy,iz+0.5)));
 
+                const double jy = cze * V_y * n_e;// [A/м^2]
+#else
 	            const double jy = 0;//cze * V_y * n_e;// [A/м^2]
-
+#endif
 	            Ey(it+1, ix, iy, iz) = Ey(it, ix, iy, iz) +
 	            		DT/EPS0/EPS * (
 	        	                (Hx(it+0.5, ix, iy, iz+0.5) - Hx(it+0.5, ix, iy, iz-0.5)) / dz
@@ -581,13 +600,25 @@ int main(){
 	                );
 	            */
 
-//	            const double n_e = avg( HdVec3D::density(U(it,ix-0.5,iy-0.5,iz)) , HdVec3D::density(U(it,ix-0.5,iy+0.5,iz)) ,HdVec3D::density(U(it,ix+0.5,iy-0.5,iz)) ,HdVec3D::density(U(it,ix+0.5,iy+0.5,iz))); // [1/m^3]
-//	            const double V_z = avg( HdVec3D::velocityZ(U(it,ix-0.5,iy-0.5,iz)) , HdVec3D::velocityZ(U(it,ix-0.5,iy+0.5,iz)) ,HdVec3D::velocityZ(U(it,ix+0.5,iy-0.5,iz)) ,HdVec3D::velocityZ(U(it,ix+0.5,iy+0.5,iz)) );
+#ifdef RHS_ENABLE
+	            const double n_e = avg( HdVec3D::density(U(it,ix-0.5,iy-0.5,iz)) , HdVec3D::density(U(it,ix-0.5,iy+0.5,iz)) ,HdVec3D::density(U(it,ix+0.5,iy-0.5,iz)) ,HdVec3D::density(U(it,ix+0.5,iy+0.5,iz))); // [1/m^3]
+	            const double V_z = avg( HdVec3D::velocityZ(U(it,ix-0.5,iy-0.5,iz)) , HdVec3D::velocityZ(U(it,ix-0.5,iy+0.5,iz)) ,HdVec3D::velocityZ(U(it,ix+0.5,iy-0.5,iz)) ,HdVec3D::velocityZ(U(it,ix+0.5,iy+0.5,iz)) );
 
-	            const double jz = 0;//cze * V_z * n_e;// [A/м^2]
+	            double jz = cze * V_z * n_e;// [A/м^2]
+#else
+	            //const double jz = 0;//cze * V_z * n_e;// [A/м^2]
+	            double jz = 0;
+#endif
 
+	            if( (ix==J_SOURCE_IX) && (iy==J_SOURCE_IY) && (iz==J_SOURCE_IZ) ){
+	                //jz += sourceJz/dx/dy;
+
+	                cout << "sourceJz: " << sourceJz << endl;
+	                cout << "jz: " <<jz  << endl;
+	            }
 
 	            Ez(it + 1, ix, iy, iz) =
+	                    Ez(it,ix,iy,iz) + //MEGABUG WAS HERE!!!
 	            		DT/EPS0/EPS * (
 	        	                (Hy(it+0.5, ix+0.5, iy, iz) - Hy(it+0.5, ix-0.5, iy, iz)) / dx
 	        	                -
@@ -764,7 +795,7 @@ int main(){
 	                );
 	        });
 
-#if(0)
+#ifdef RHS_ENABLE
 	     cout << "HD step" << endl;
 
 
@@ -987,16 +1018,16 @@ int main(){
 			*/
 		}
 
-	    if (false/*it<10 || isEveryNth(it, 10)*/) {
+	    if (/*it<10 ||*/ isEveryNth(it, 10) /*|| between(it,30,40)*/) {
 
 	    	vtiSaver.save(Hx[it+0.5],frame("Hx_",it,"vti"));
 	    	vtiSaver.save(Hy[it+0.5],frame("Hy_",it,"vti"));
 			vtiSaver.save(Hz[it+0.5],frame("Hz_",it,"vti"));
 
-	    	vtiSaver.save(Ex[it+0.5],frame("Ex_",it,"vti"));
-	    	vtiSaver.save(Ey[it+0.5],frame("Ey_",it,"vti"));
-			vtiSaver.save(Ez[it+0.5],frame("Ez_",it,"vti"));
-
+	    	vtiSaver.save(Ex[it],frame("Ex_",it,"vti"));
+	    	vtiSaver.save(Ey[it],frame("Ey_",it,"vti"));
+			vtiSaver.save(Ez[it],frame("Ez_",it,"vti"));
+#ifdef RHS_ENABLE
 			vtiSaver.save(U[it],frame("density_",it,"vti"),GRID3D_CALCULATOR{
 				return HdVec3D::density( U(it,ix,iy,iz) );
 			});
@@ -1005,10 +1036,11 @@ int main(){
                 return HdVec3D::pressure( U(it,ix,iy,iz) );
             });
 
+
 			vtiSaver.save(U[it],frame("logT_",it,"vti"),GRID3D_CALCULATOR{
 				return log(J_TO_EV(HdVec3D::internalEnergyPerMassUnit(U(it,ix,iy,iz)) * cme));
 			});
-
+#endif
 		}
 
 

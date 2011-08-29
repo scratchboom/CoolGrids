@@ -2,7 +2,7 @@
 #include "GridsCommon.hpp"
 #include "intel_ode.h"
 
-#define RHS_ENABLE 1
+//#define RHS_ENABLE 1
 
 using namespace std;
 
@@ -482,6 +482,7 @@ int main(){
             //double sourceHz = H_AMPLITUDE*sin(2.0*M_PI*t/IMPULSE_TIME)*gaussStep(t,IMPULSE_TIME*4,IMPULSE_TIME);
             //double sourceHz = t/IMPULSE_TIME<1.0 ? H_AMPLITUDE*(1.0-cos(2.0*M_PI*t/IMPULSE_TIME)) : 0;
             double sourceHz = H_AMPLITUDE*gauss(t,2.0*IMPULSE_TIME , IMPULSE_TIME);
+
 
 
             //double sourceHz = H_AMPLITUDE*sin(2.0*M_PI*t*chi)*gaussStep(t,1.0/chi,1.0/chi);//good

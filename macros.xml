@@ -31,11 +31,7 @@
 					./3rd-party/zlib/1.2.5/libzlib.a			
 					./3rd-party/IntelOdeSolver/lib/ia32/libiode_ia32.a
 					
-					-lmpich
 					
-					
-					
-					-mkl
 					
 					
 					       -std=c++0x -openmp"/>

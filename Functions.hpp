@@ -115,6 +115,10 @@ bool isEveryNth(double n,int N){
 	return ((int)n)%N==0;
 }
 
+bool between(double x,double a,double b){
+    return (x>=a) && (x<=b);
+}
+
 double sign(double a){
 	if(a>0)return 1;
 	else if(a<0)return -1;

@@ -5,7 +5,7 @@ using namespace std;
 
 int main(){
 
-	omp_set_num_threads(2);
+	omp_set_num_threads(4);
 
 	VtiSaver3D vtiSaver;
 	CImgSaver2D cimgSaver;
@@ -27,12 +27,19 @@ int main(){
     double SOURCE_IY = (int)(Ny*0.5)+0.5;
     double SOURCE_IZ = Nz/2;
 
+    double J_SOURCE_IX = (int)(Nx*0.5);
+    double J_SOURCE_IY = (int)(Ny*0.5);
+    double J_SOURCE_IZ = (int)(Nz*0.5)+0.5;
+
+
     double frec=3e8;
 
     double IMPULSE_TIME_WIDTH=1.0/frec;
 
     double E_AMPLITUDE=1.0;
     double H_AMPLITUDE=E_AMPLITUDE/VACUUM_WAVE_RESISTIVITY;
+
+    double J_AMPLITUDE=1.0;
 
 	cimgSaver.setValueRange(-2.0*H_AMPLITUDE , 2.0*H_AMPLITUDE);
 
@@ -46,7 +53,7 @@ int main(){
 	double dz=Sz/Nz;
 	//double DT=T/Nt;
 
-    double DT=0.4*dx/C;
+    double DT=0.5*dx/C;
 
 //    cout << IMPULSE_TIME_WIDTH*C << endl;
 //    cout << IMPULSE_TIME_WIDTH/DT << endl;
@@ -328,8 +335,10 @@ int main(){
 			double t = it * DT;
 
 
-	        double sourceHz = H_AMPLITUDE*sin(2.0*M_PI*t/IMPULSE_TIME_WIDTH)*gaussStep(t,IMPULSE_TIME_WIDTH,IMPULSE_TIME_WIDTH);
+	        //double sourceHz = H_AMPLITUDE*sin(2.0*M_PI*t/IMPULSE_TIME_WIDTH)*gaussStep(t,IMPULSE_TIME_WIDTH,IMPULSE_TIME_WIDTH);
+            double sourceHz = H_AMPLITUDE*gauss(t,2*IMPULSE_TIME_WIDTH,IMPULSE_TIME_WIDTH);
 
+            double sourceJz = J_AMPLITUDE*gauss(t,2*IMPULSE_TIME_WIDTH,IMPULSE_TIME_WIDTH);
 
 	        //Hz(it+0.5, SOURCE_IX , SOURCE_IY , SOURCE_IZ) = sourceHz;
 	        cout << "sourceHz=" << sourceHz << endl;
@@ -340,23 +349,24 @@ int main(){
 	        //double KY=0.5;
 
 
+	        /*
 	        double KZ=0;
 	        double KY=0;
 
+	        double PAD_SIZE=0;
 
-	        for(double iz=SOURCE_IZ-20;iz<=SOURCE_IZ+20;iz++)
-	            for(double iy=SOURCE_IY-20;iy<=SOURCE_IY+20;iy++){
+	        for(double iz=SOURCE_IZ-PAD_SIZE;iz<=SOURCE_IZ+PAD_SIZE;iz++)
+	            for(double iy=SOURCE_IY-PAD_SIZE;iy<=SOURCE_IY+PAD_SIZE;iy++){
 
 	                double DZ= (iz-SOURCE_IZ)*dz;
 	                double DY= (iy-SOURCE_IY)*dy;
 
-	                double sourceHz=H_AMPLITUDE*sin(2.0*M_PI*  (t/IMPULSE_TIME_WIDTH - KY*DY - KZ*DZ)) *gaussStep(t,IMPULSE_TIME_WIDTH,IMPULSE_TIME_WIDTH);
-
-
+	                //double sourceHz=H_AMPLITUDE*sin(2.0*M_PI*  (t/IMPULSE_TIME_WIDTH - KY*DY - KZ*DZ)) *gaussStep(t,IMPULSE_TIME_WIDTH,IMPULSE_TIME_WIDTH);
 
 
 	                Hz(it+0.5, SOURCE_IX , iy , iz) = sourceHz;
 	            }
+	        */
 
 
 
@@ -400,12 +410,25 @@ int main(){
 
 	            double SIGMA=0.5*(sigma(0,ix,iy,iz-0.5)+sigma(0,ix,iy,iz+0.5));
 
+	            double jz = 0;
+
+	            if( (ix==J_SOURCE_IX) &&
+	                (iy==J_SOURCE_IY) &&
+	                (iz==J_SOURCE_IZ) ){
+
+	                jz = sourceJz;
+
+	                cout << "sourceJz: " << jz;
+	            }
+
 	            Ez(it + 1, ix, iy, iz)=
 	                (1.0-SIGMA*DT/2.0/EPS/EPS0)/(1.0+SIGMA*DT/2.0/EPS/EPS0)*Ez(it, ix, iy, iz)
 	                + DT/(1.0+SIGMA*DT/2.0/EPS/EPS0)/EPS/EPS0 * (
 	                (Hy(it+0.5, ix+0.5, iy, iz) - Hy(it+0.5, ix-0.5, iy, iz)) / dx
 	                -
 	                (Hx(it+0.5, ix, iy+0.5, iz) - Hx(it+0.5, ix, iy-0.5, iz)) / dy
+
+	                - jz
 	                );
 
 	        });
@@ -573,7 +596,7 @@ int main(){
 	                );
 	        });
 
-
+#ifdef RHS_ENABLE
 
 
 	       Fx[it].iterateInternal(1,0,0,GRID3D_ITERATOR {
@@ -628,7 +651,7 @@ int main(){
 
 		});
 
-
+#endif
 
 
 
@@ -639,6 +662,12 @@ int main(){
 			});
 
 			//vtiSaver.save(Hz[it+0.5],frame("Hz_",it,"vti"));
+
+
+			vtiSaver.save(Ex[it],frame("Ex_",it,"vti"));
+			vtiSaver.save(Ey[it],frame("Ey_",it,"vti"));
+			vtiSaver.save(Ez[it],frame("Ez_",it,"vti"));
+
 		}
 
 
