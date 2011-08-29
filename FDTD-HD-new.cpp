@@ -2,7 +2,7 @@
 #include "GridsCommon.hpp"
 #include "intel_ode.h"
 
-#define RHS_ENABLE 1
+//#define RHS_ENABLE 1
 
 using namespace std;
 
