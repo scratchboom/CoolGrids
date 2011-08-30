@@ -2,7 +2,7 @@
 #include "GridsCommon.hpp"
 #include "intel_ode.h"
 
-//#define RHS_ENABLE 1
+#define RHS_ENABLE 1
 
 using namespace std;
 
@@ -99,6 +99,11 @@ struct UserData{
 UserData G_userdata;
 
 
+
+int NORMAL=0;
+int BORDER=1;
+
+
 /*
 accumulator acc_U0;
 accumulator acc_U1;
@@ -160,6 +165,7 @@ int main(){
     double Nt=10000;
 
     double SOURCE_IX = (int)(Nx*0.1)+0.5;
+    double J_SOURCE_IX = (int)(Nx*0.5);
 
 
     double IMPULSE_FREQ = chi;
@@ -168,6 +174,8 @@ int main(){
 
     double E_AMPLITUDE=1e7;
     double H_AMPLITUDE=E_AMPLITUDE/VACUUM_WAVE_RESISTIVITY;
+
+    double J_AMPLITUDE=1;// ~<= мега-Ампер
 
     cimgSaver.setValueRange(-2.0*H_AMPLITUDE , 2.0*H_AMPLITUDE);
 
@@ -369,6 +377,15 @@ int main(){
     TimedGrid1D < Vector5D > Fy("Fy");
     TimedGrid1D < Vector5D > Fz("Fz");
 
+    Grid1D <int> Mx("Border mark over X axis");
+    int BULB_SIZE = 4;//in cells
+    Mx.setRangeX(0.0 * dx, Sx);
+    Mx.setIndexRangeX(0, Nx);
+    Mx.build();
+    Mx.fill(NORMAL);
+
+    Mx(J_SOURCE_IX - BULB_SIZE) = -BORDER;
+    Mx(J_SOURCE_IX + BULB_SIZE) = +BORDER;
 
 
     U.setRangeT(0, T);
@@ -482,7 +499,7 @@ int main(){
             //double sourceHz = H_AMPLITUDE*sin(2.0*M_PI*t/IMPULSE_TIME)*gaussStep(t,IMPULSE_TIME*4,IMPULSE_TIME);
             //double sourceHz = t/IMPULSE_TIME<1.0 ? H_AMPLITUDE*(1.0-cos(2.0*M_PI*t/IMPULSE_TIME)) : 0;
             double sourceHz = H_AMPLITUDE*gauss(t,2.0*IMPULSE_TIME , IMPULSE_TIME);
-
+            double sourceJz = J_AMPLITUDE*gauss(t,2.0*IMPULSE_TIME , IMPULSE_TIME);
 
 
             //double sourceHz = H_AMPLITUDE*sin(2.0*M_PI*t*chi)*gaussStep(t,1.0/chi,1.0/chi);//good
@@ -491,8 +508,9 @@ int main(){
             //                    sourceHz=H_AMPLITUDE * onePlusCosPulse(DR/(dx*length(PAD_SIZE_Y,PAD_SIZE_Z)) *M_PI) *sin(2.0*M_PI*  (t/IMPULSE_TIME - KY*DY - KZ*DZ)) *gaussStep(t,IMPULSE_TIME*1.5,IMPULSE_TIME);
 
 
-            Hz(it+0.5, SOURCE_IX) += sourceHz;
+            //Hz(it+0.5, SOURCE_IX) += sourceHz;
             cout << "sourceHz=" << sourceHz << endl;
+            cout << "sourceJz=" << sourceJz << endl;
 
 
 
@@ -521,6 +539,7 @@ int main(){
                 rotHx(it + 1 , ix) = (Hz(it+0.5, ix) - Hz(it+0.5, ix)) / dy
                         -
                         (Hy(it+0.5, ix) - Hy(it+0.5, ix)) / dz;
+
 
                 Ex(it + 1, ix) = Ex(it, ix) +
                         DT/EPS0/EPS*( (Hz(it+0.5, ix) - Hz(it+0.5, ix)) / dy
@@ -581,11 +600,18 @@ int main(){
                 const double n_e = avg( HdVec3D::density(U(it,ix-0.5)) , HdVec3D::density(U(it,ix-0.5)) ,HdVec3D::density(U(it,ix+0.5)) ,HdVec3D::density(U(it,ix+0.5))); // [1/m^3]
                 const double V_z = 0.0;
 
-                const double jz = cze * V_z * n_e;// [A/м^2]
+                double jz = cze * V_z * n_e;// [A/м^2]
+
+                if( (ix==J_SOURCE_IX) ) {
+                    jz += sourceJz/dx/dy;
+                    cout << "sourceJz: " << sourceJz << endl;
+                    cout << "jz: " <<jz << endl;
+                }
 
                 //Jz(it + 1 , ix) = jz;
 
                 Ez(it + 1, ix) =
+                        Ez(it, ix) +
                         DT/EPS0/EPS * (
                                 (Hy(it+0.5, ix+0.5) - Hy(it+0.5, ix-0.5)) / dx
                                 -
@@ -683,7 +709,30 @@ int main(){
 
         cout << "HD step x" << endl;
         Fx[it].iterateInternal(1, GRID1D_ITERATOR {
-            Fx(it,ix)=HdFlowVec3D::X::riemannFlux( U(it,ix-0.5) , U(it,ix+0.5) );
+            if(Mx(ix)==NORMAL){
+                Fx(it,ix)=HdFlowVec3D::X::riemannFlux( U(it,ix-0.5) , U(it,ix+0.5) );
+            }else if(Mx(ix)<0){
+                Vector5D u = U(it, ix-0.5);
+
+                double rho = HdVec3D::density(u);
+                double p = HdVec3D::pressure(u);
+                double v = HdVec3D::velocityX(u);
+
+                Vector5D uw = HdVec3D::fromDensityPressureVelocity(rho, p, -v, 0, 0);
+
+                Fx(it, ix) = HdFlowVec3D::X::riemannFlux(u, uw);
+            }else if(Mx(ix)>0){
+                Vector5D u = U(it, ix+0.5);
+
+                double rho = HdVec3D::density(u);
+                double p = HdVec3D::pressure(u);
+                double v = HdVec3D::velocityX(u);
+
+                Vector5D uw = HdVec3D::fromDensityPressureVelocity(rho, p, -v, 0, 0);
+
+                Fx(it, ix) = HdFlowVec3D::X::riemannFlux(uw, u);
+            }
+
         });
 
 
@@ -726,6 +775,7 @@ int main(){
         double fff[6];
 
         U[it + 1].iterateWhole(GRID1D_ITERATOR {
+            if(abs(ix-J_SOURCE_IX)<BULB_SIZE)return;
             U(it+1,ix)=U(it,ix) - DT/dx*(Fx(it,ix+0.5)-Fx(it,ix-0.5));
 
 
@@ -1089,7 +1139,11 @@ void rhs(int *ptrN,double *t,double *u,double *f){
     //const double Q_w = e*n_e*(E_x*V_x + E_y*V_y + E_z*V_z);//TODO не симметрично относительно поворота СК, размерность нормальная? [Дж/с/м^3]
     //const double Q_w = e*n_e*sqrt( sqr(E_x*V_x , E_y*V_y , E_z*V_z) );
     //const double Q_w = e*n_e*( E_x*V_x + E_y*V_y + E_z*V_z );
+
     const double Q_w = -e*n_e*( E_x*V_x + E_y*V_y + E_z*V_z );
+    //const double Q_w = e*n_e*sqrt( abs(E_x*V_x) + abs(E_y*V_y) + abs(E_z*V_z) );
+    //const double Q_w = e*n_e*sqrt( sqr(E_x*V_x) + sqr(E_y*V_y) + sqr(E_z*V_z) );
+
     DBGVAL(Q_w);
     DBGVAL(e*n_e*E_x*V_x  /n_e);
     DBGVAL(e*n_e*E_y*V_y  /n_e);

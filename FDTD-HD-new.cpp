@@ -164,7 +164,7 @@ int main(){
 
     double Nx=100;
     double Ny=100 /*+ 1*/;
-    double Nz=100;
+    double Nz=200;
     double Nt=10000;
 
     double SOURCE_IX = (int)(Nx*0.5)+0.5;
@@ -209,7 +209,7 @@ int main(){
 	double Sz= dz*Nz;
 	double T=1.0;
 
-    double DT = 0.5*dx/C;
+    double DT = 0.4*dx/C;
     dt = DT;//TODO remove global dt
 
 
@@ -481,11 +481,10 @@ int main(){
 			double t = it * DT;
 
 
-	        double sourceHz = H_AMPLITUDE*gauss(t,2.0*IMPULSE_TIME , IMPULSE_TIME);
+	        //double sourceHz = H_AMPLITUDE*gauss(t,2.0*IMPULSE_TIME , IMPULSE_TIME);
+	        double sourceJz = J_AMPLITUDE* sin(2.0*M_PI*  (t/IMPULSE_TIME))*gaussStep(t,2.0*IMPULSE_TIME , IMPULSE_TIME);
 
-	        double sourceJz = J_AMPLITUDE* /*sin(2.0*M_PI*  (t/IMPULSE_TIME))*/ gauss(t,2.0*IMPULSE_TIME , IMPULSE_TIME);
-
-	        Hz(it+0.5, SOURCE_IX , SOURCE_IY , SOURCE_IZ) = H_AMPLITUDE*gauss(t,2.0*IMPULSE_TIME , IMPULSE_TIME);
+	        //Hz(it+0.5, SOURCE_IX , SOURCE_IY , SOURCE_IZ) = H_AMPLITUDE*gauss(t,2.0*IMPULSE_TIME , IMPULSE_TIME);
 
 //	        double KZ = 0;
 //	        double KY = 0;
@@ -611,7 +610,7 @@ int main(){
 #endif
 
 	            if( (ix==J_SOURCE_IX) && (iy==J_SOURCE_IY) && (iz==J_SOURCE_IZ) ){
-	                //jz += sourceJz/dx/dy;
+	                jz += sourceJz/dx/dy;
 
 	                cout << "sourceJz: " << sourceJz << endl;
 	                cout << "jz: " <<jz  << endl;
