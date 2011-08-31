@@ -2,7 +2,7 @@
 #include "GridsCommon.hpp"
 #include "intel_ode.h"
 
-//#define RHS_ENABLE 1
+#define RHS_ENABLE 1
 
 using namespace std;
 
@@ -86,13 +86,8 @@ double ATM_T=200.0; //температура атмоcферы K
 void rhs(int *ptrN,double *t,double *u,double *f);
 
 
-enum BorderMark{
-    NORAML,
-    TRANSPARENT,
-    BORDER
-};
-
-
+const int NORMAL = 0;
+const int BORDER = 1;
 
 struct UserData{
 	double E_x;
@@ -182,7 +177,7 @@ int main(){
     double E_AMPLITUDE=1e7;
     double H_AMPLITUDE=E_AMPLITUDE/VACUUM_WAVE_RESISTIVITY;
 
-    double J_AMPLITUDE=1e6;// ~<= мега-Ампер
+    double J_AMPLITUDE=10;// ~<= мега-Ампер
 
 	cimgSaver.setValueRange(-2.0*H_AMPLITUDE , 2.0*H_AMPLITUDE);
 
@@ -198,11 +193,9 @@ int main(){
 	*/
 	//double DT=T/Nt;
 
-
-
-
-	double dx,dy,dz;
-	dx=dy=dz = IMPULSE_LENGTH/32.0;
+	const double dx=  IMPULSE_LENGTH/32.0;
+	const double dy=  IMPULSE_LENGTH/32.0;
+	const double dz=  IMPULSE_LENGTH/32.0;
 
 	double Sx= dx*Nx;
 	double Sy= dy*Ny;
@@ -401,9 +394,9 @@ int main(){
 	TimedGrid3D < Vector5D > Fy("Fy");
 	TimedGrid3D < Vector5D > Fz("Fz");
 
-	Grid3D < BorderMark > Markx("Mark x");
-	Grid3D < BorderMark > Marky("Mark y");
-	Grid3D < BorderMark > Markz("Mark z");
+	Grid3D < int > Markx("Mark x");
+	Grid3D < int > Marky("Mark y");
+	Grid3D < int > Markz("Mark z");
 
 
     U.setRangeT(0, T);
@@ -411,12 +404,16 @@ int main(){
 	U.setRangeY(0.5 * dy, Sy - 0.5 * dy);
 	U.setRangeZ(0.5 * dz, Sz - 0.5 * dz);
 
+
+
     U.setIndexRangeT(0, Nt);
 	U.setIndexRangeX(0.5, Nx - 0.5);
 	U.setIndexRangeY(0.5, Ny - 0.5);
 	U.setIndexRangeZ(0.5, Nz - 0.5);
 	U.build();
 	U.fill(Vector5D(5));
+
+
 
     Fx.setRangeT(0, T);
 	Fx.setRangeX(0.0 * dx, Sx);
@@ -430,6 +427,8 @@ int main(){
 	Fx.build();
 	Fx.fill(Vector5D(5));
 
+
+
     Fy.setRangeT(0, T);
 	Fy.setRangeX(0.5 * dx, Sx - 0.5 * dx);
 	Fy.setRangeY(0.0 * dy, Sy);
@@ -441,6 +440,8 @@ int main(){
 	Fy.setIndexRangeZ(0.5, Nz - 0.5);
 	Fy.build();
 	Fy.fill(Vector5D(5));
+
+
 
     Fz.setRangeT(0, T);
 	Fz.setRangeX(0.5 * dx, Sx - 0.5 * dx);
@@ -455,7 +456,90 @@ int main(){
 	Fz.fill(Vector5D(5));
 
 
+	Markx.setRangeX(0.0 * dx, Sx);
+	Markx.setRangeY(0.5 * dy, Sy - 0.5 * dy);
+	Markx.setRangeZ(0.5 * dz, Sz - 0.5 * dz);
 
+	Markx.setIndexRangeX(0, Nx);
+	Markx.setIndexRangeY(0.5, Ny - 0.5);
+	Markx.setIndexRangeZ(0.5, Nz - 0.5);
+	Markx.build();
+	Markx.fill(NORMAL);
+
+
+
+    Marky.setRangeX(0.5 * dx, Sx - 0.5 * dx);
+    Marky.setRangeY(0.0 * dy, Sy);
+    Marky.setRangeZ(0.5 * dz, Sz - 0.5 * dz);
+
+    Marky.setIndexRangeX(0.5, Nx - 0.5);
+    Marky.setIndexRangeY(0, Ny);
+    Marky.setIndexRangeZ(0.5, Nz - 0.5);
+    Marky.build();
+    Marky.fill(NORMAL);
+
+
+
+    Markz.setRangeX(0.5 * dx, Sx - 0.5 * dx);
+    Markz.setRangeY(0.5 * dy, Sy - 0.5 * dy);
+    Markz.setRangeZ(0.0, Sz);
+
+    Markz.setIndexRangeX(0.5, Nx - 0.5);
+    Markz.setIndexRangeY(0.5, Ny - 0.5);
+    Markz.setIndexRangeZ(0, Nz);
+    Markz.build();
+    Markz.fill(NORMAL);
+
+
+    const int BULB_SIZE = 4;//in cells
+
+    double dix,diy,diz;
+
+
+    double P = BULB_SIZE;
+
+    //bulb mark x
+    dix = -P;
+    for (diy = -(P - 0.5); diy <= +(P - 0.5); diy++)
+        for (diz = -(P - 1); diz <= +(P - 1); diz++) {
+            Markx(J_SOURCE_IX + dix, J_SOURCE_IY + diy, J_SOURCE_IZ + diz) = -BORDER;
+        }
+
+    dix = P;
+    for (diy = -(P - 0.5); diy <= +(P - 0.5); diy++)
+        for (diz = -(P - 1); diz <= +(P - 1); diz++) {
+            Markx(J_SOURCE_IX + dix, J_SOURCE_IY + diy, J_SOURCE_IZ + diz) = BORDER;
+        }
+
+    //bulb mark y
+    diy = -P;
+    for (dix = -(P - 0.5); dix <= +(P - 0.5); dix++)
+        for (diz = -(P - 1); diz <= +(P - 1); diz++) {
+            Marky(J_SOURCE_IX + dix, J_SOURCE_IY + diy, J_SOURCE_IZ + diz) = -BORDER;
+        }
+
+    diy = P;
+    for (dix = -(P - 0.5); dix <= +(P - 0.5); dix++)
+        for (diz = -(P - 1); diz <= +(P - 1); diz++) {
+            Marky(J_SOURCE_IX + dix, J_SOURCE_IY + diy, J_SOURCE_IZ + diz) = BORDER;
+        }
+
+    //bulb mark z
+    diz = -(P - 0.5);
+    for (dix = -(P - 0.5); dix <= +(P - 0.5); dix++)
+        for (diy = -(P - 0.5); diy <= +(P - 0.5); diy++) {
+            Markz(J_SOURCE_IX + dix, J_SOURCE_IY + diy, J_SOURCE_IZ + diz) = -BORDER;
+        }
+
+    diz = +(P - 0.5);
+    for (dix = -(P - 0.5); dix <= +(P - 0.5); dix++)
+        for (diy = -(P - 0.5); diy <= +(P - 0.5); diy++) {
+            Markz(J_SOURCE_IX + dix, J_SOURCE_IY + diy, J_SOURCE_IZ + diz) = BORDER;
+        }
+
+
+
+    //initial value for HD
     U[0].iterateWhole(GRID3D_ITERATOR{
 	         U(0,ix,iy,iz) = HdVec3D::fromDensityPressureVelocity(NE0*cme , 3.0/2.0*k_b*ATM_T*NE0 , 0 ,0 ,0);
 	});
@@ -614,6 +698,10 @@ int main(){
 
 	                cout << "sourceJz: " << sourceJz << endl;
 	                cout << "jz: " <<jz  << endl;
+	            }
+
+	            if(isnan(jz)!=0){
+	                cout << "bubug" << endl;
 	            }
 
 	            Ez(it + 1, ix, iy, iz) =
@@ -800,37 +888,90 @@ int main(){
 
 	    cout << "HD step x" << endl;
 	    Fx[it].iterateInternal(1, 0, 0, GRID3D_ITERATOR {
-			Fx(it,ix,iy,iz)=HdFlowVec3D::X::riemannFlux( U(it,ix-0.5,iy,iz) , U(it,ix+0.5,iy,iz) );
-//
-//			DBGVAL( U(it,ix-0.5,iy,iz)[0] );
-//			DBGVAL( U(it,ix-0.5,iy,iz)[1] );
-//			DBGVAL( U(it,ix-0.5,iy,iz)[2] );
-//			DBGVAL( U(it,ix-0.5,iy,iz)[3] );
-//			DBGVAL( U(it,ix-0.5,iy,iz)[4] );
-//
-//			DBGVAL( U(it,ix+0.5,iy,iz)[0] );
-//			DBGVAL( U(it,ix+0.5,iy,iz)[1] );
-//			DBGVAL( U(it,ix+0.5,iy,iz)[2] );
-//			DBGVAL( U(it,ix+0.5,iy,iz)[3] );
-//			DBGVAL( U(it,ix+0.5,iy,iz)[4] );
-//
-//			DBGVAL( Fx(it,ix,iy,iz)[0] );
-//			DBGVAL( Fx(it,ix,iy,iz)[1] );
-//			DBGVAL( Fx(it,ix,iy,iz)[2] );
-//			DBGVAL( Fx(it,ix,iy,iz)[3] );
-//			DBGVAL( Fx(it,ix,iy,iz)[4] );
+	        if(Markx(ix,iy,iz)==NORMAL){
+	            Fx(it,ix,iy,iz)=HdFlowVec3D::X::riemannFlux( U(it,ix-0.5,iy,iz) , U(it,ix+0.5,iy,iz) );
+	        }else if(Markx(ix,iy,iz)<0){
+	            Vector5D u = U(it, ix-0.5,iy,iz);
 
-//			pressAnyKey();
+                double rho = HdVec3D::density(u);
+                double p = HdVec3D::pressure(u);
+                double v = HdVec3D::velocityX(u);
+
+                Vector5D uw = HdVec3D::fromDensityPressureVelocity(rho, p, -v, 0, 0);
+
+                Fx(it, ix,iy,iz) = HdFlowVec3D::X::riemannFlux(u, uw);
+
+
+	        }else if(Markx(ix,iy,iz)>0){
+	            Vector5D u = U(it, ix+0.5,iy,iz);
+
+                double rho = HdVec3D::density(u);
+                double p = HdVec3D::pressure(u);
+                double v = HdVec3D::velocityX(u);
+
+                Vector5D uw = HdVec3D::fromDensityPressureVelocity(rho, p, -v, 0, 0);
+
+                Fx(it, ix,iy,iz) = HdFlowVec3D::Y::riemannFlux(uw, u);
+	        }
+
+
+
 		});
 
 	    cout << "HD step y" << endl;
 		Fy[it].iterateInternal(0, 1, 0, GRID3D_ITERATOR {
-			Fy(it,ix,iy,iz)=HdFlowVec3D::Y::riemannFlux( U(it,ix,iy-0.5,iz) , U(it,ix,iy+0.5,iz) );
+		    if(Marky(ix,iy,iz)==NORMAL){
+		        Fy(it,ix,iy,iz)=HdFlowVec3D::Y::riemannFlux( U(it,ix,iy-0.5,iz) , U(it,ix,iy+0.5,iz) );
+		    }else if(Marky(ix,iy,iz)<0){
+                Vector5D u = U(it, ix,iy-0.5,iz);
+
+                double rho = HdVec3D::density(u);
+                double p = HdVec3D::pressure(u);
+                double v = HdVec3D::velocityY(u);
+
+                Vector5D uw = HdVec3D::fromDensityPressureVelocity(rho, p, -v, 0, 0);
+
+                Fy(it, ix,iy,iz) = HdFlowVec3D::Y::riemannFlux(u, uw);
+		    }else if(Marky(ix,iy,iz)>0){
+                Vector5D u = U(it, ix,iy+0.5,iz);
+
+                double rho = HdVec3D::density(u);
+                double p = HdVec3D::pressure(u);
+                double v = HdVec3D::velocityY(u);
+
+                Vector5D uw = HdVec3D::fromDensityPressureVelocity(rho, p, -v, 0, 0);
+
+                Fy(it, ix,iy,iz) = HdFlowVec3D::Y::riemannFlux(uw, u);
+		    }
 		});
 
 		cout << "HD step z" << endl;
 		Fz[it].iterateInternal(0, 0, 1, GRID3D_ITERATOR {
-			Fz(it,ix,iy,iz)=HdFlowVec3D::Z::riemannFlux( U(it,ix,iy,iz-0.5) , U(it,ix,iy,iz+0.5) );
+		    if(Markz(ix,iy,iz)==NORMAL){
+		        Fz(it,ix,iy,iz)=HdFlowVec3D::Z::riemannFlux( U(it,ix,iy,iz-0.5) , U(it,ix,iy,iz+0.5) );
+		    }else if (Markz(ix,iy,iz)<0){
+		        Vector5D u = U(it, ix,iy,iz-0.5);
+
+                double rho = HdVec3D::density(u);
+                double p = HdVec3D::pressure(u);
+                double v = HdVec3D::velocityZ(u);
+
+                Vector5D uw = HdVec3D::fromDensityPressureVelocity(rho, p, -v, 0, 0);
+
+                Fz(it, ix,iy,iz) = HdFlowVec3D::Z::riemannFlux(u, uw);
+
+		    }else if (Markz(ix,iy,iz)>0){
+                Vector5D u = U(it, ix,iy,iz+0.5);
+
+                double rho = HdVec3D::density(u);
+                double p = HdVec3D::pressure(u);
+                double v = HdVec3D::velocityZ(u);
+
+                Vector5D uw = HdVec3D::fromDensityPressureVelocity(rho, p, -v, 0, 0);
+
+                Fz(it, ix,iy,iz) = HdFlowVec3D::Z::riemannFlux(uw, u);
+		    }
+
 		});
 
 		cout << "Hd boundary conditions" << endl;
@@ -864,6 +1005,12 @@ int main(){
 
 
 		U[it + 1].iterateWhole(GRID3D_ITERATOR {
+		    if(abs(ix-J_SOURCE_IX) <= (P-0.5)
+		            &&
+		       abs(iy-J_SOURCE_IY) <= (P-0.5)
+		            &&
+		       abs(iz-J_SOURCE_IZ) <= (P-1.0) ) return;
+
 			U(it+1,ix,iy,iz)=U(it,ix,iy,iz) - DT/dx*(Fx(it,ix+0.5,iy,iz)-Fx(it,ix-0.5,iy,iz))
 			                                - DT/dy*(Fy(it,ix,iy+0.5,iz)-Fy(it,ix,iy-0.5,iz))
 			                                - DT/dz*(Fz(it,ix,iy,iz+0.5)-Fz(it,ix,iy,iz-0.5));
@@ -1017,7 +1164,7 @@ int main(){
 			*/
 		}
 
-	    if (/*it<10 ||*/ isEveryNth(it, 10) /*|| between(it,30,40)*/) {
+	    if (/*it<10 ||*/ isEveryNth(it, 1) /*|| between(it,30,40)*/) {
 
 	    	vtiSaver.save(Hx[it+0.5],frame("Hx_",it,"vti"));
 	    	vtiSaver.save(Hy[it+0.5],frame("Hy_",it,"vti"));
