@@ -1,14 +1,18 @@
 #pragma once
 
-bool MEGADEBUG = false;
+bool MEGADEBUG = true;
 
 #define DBGLN {std::cout << "DBGLN: " << __FILE__ <<"(" << __LINE__ <<")"<< std::endl;};
 #define DBGVAL(val) {if(MEGADEBUG){std::cout << #val << ": " << (val) <<std::endl;}};
-#define DBGLNVAL(val) {{if(MEGADEBUG){std::cout << "DBGLN: " << __FILE__ <<": " << __LINE__ << "    " << #val << ": " << (val) << std::endl;}};
+#define DBGLNVAL(val) {if(MEGADEBUG){std::cout << "DBGLN: " << __FILE__ <<": " << __LINE__ << "    " << #val << ": " << (val) << std::endl;}};
 
 #define CHECK(what,op,val) {std::cout << "checking " << #what << #op << #val; std::cout << ":    " #what << " = " << what; if(what op val) std::cout << " - OK (" << #what << #op << val << ")" << std::endl;else {std::cout << " - FAILED (should be " << #what << #op << val << ")" << std::endl; exit(0);}};
 
-#define CHECK_BAD(x) {if((isnan(x)==0) && (isinf(x)==0)) std<<cout << #x << " is bad num: " << x << std::endl;};
+#define CHECK_BAD(x) {if((isnan(x)!=0) || (isinf(x)!=0)) std<<cout << #x << " is bad num: " << x << std::endl;};
+
+bool isBad(double x){
+    return ((isnan(x)!=0) || (isinf(x)!=0)) || (abs(x)<1e-200 && abs(x)>0)  || (abs(x)>1e100) ;
+}
 
 template<typename T>
 std::string toString(T v){
@@ -37,4 +41,6 @@ bool inRangeInclusive(T x,T xmin,T xmax){
 double rnd(){
     return rand()/(double(RAND_MAX)+1);
 }
+
+
 

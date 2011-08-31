@@ -100,8 +100,8 @@ UserData G_userdata;
 
 
 
-int NORMAL=0;
-int BORDER=1;
+const int NORMAL=0;
+const int BORDER=1;
 
 
 /*
@@ -378,7 +378,7 @@ int main(){
     TimedGrid1D < Vector5D > Fz("Fz");
 
     Grid1D <int> Mx("Border mark over X axis");
-    int BULB_SIZE = 4;//in cells
+    const int BULB_SIZE = 4;//in cells
     Mx.setRangeX(0.0 * dx, Sx);
     Mx.setIndexRangeX(0, Nx);
     Mx.build();

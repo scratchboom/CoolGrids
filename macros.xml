@@ -5,10 +5,15 @@
 		<attribute name="mainfile"/>
 		<sequential>
 			<mkdir dir="./bin/@{mainfile}"/>
-			<!-- -g -O0 -->
+			<!--  
+			-g -O0 
+                    -debug all
+			-->
 			<exec executable="icpc" failonerror="true">
 				<arg line="-U__GXX_EXPERIMENTAL_CXX0X__
 					       @{mainfile}.cpp
+					
+					
 					       -o ./bin/@{mainfile}/@{mainfile}.exe
 					       
 					       -I./3rd-party/boost/1.44.0
@@ -19,7 +24,7 @@
 					       -I./3rd-party/IntelOdeSolver/include
 					       -I../vtk561/VTK/./HERE/include/vtk-5.6
 				           -I/usr/include/mpich2
-              
+					 
 					
 					../vtk561/VTK/./HERE/lib/vtk-5.6/libvtkHybrid.a
 					../vtk561/VTK/./HERE/lib/vtk-5.6/libvtkFiltering.a					
