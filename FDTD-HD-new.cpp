@@ -86,6 +86,7 @@ double ATM_T=200.0; //температура атмоcферы K
 void rhs(int *ptrN,double *t,double *u,double *f);
 
 
+
 const int NORMAL = 0;
 const int BORDER = 1;
 
@@ -120,6 +121,42 @@ UserData G_userdata[NUM_PROC];
 //accumulator acc_f4;
 
 double dt;
+
+double Nx = 100;
+double Ny = 100 /*+ 1*/;
+double Nz = 100;
+double Nt = 10000;
+
+const int BULB_SIZE = 4;//in cells
+const double P = BULB_SIZE;
+
+double SOURCE_IX = (int) (Nx * 0.5) + 0.5;
+double SOURCE_IY = (int) (Ny * 0.5) + 0.5;
+double SOURCE_IZ = (int) (Nz * 0.5);
+
+double J_SOURCE_IX = (int) (Nx * 0.5);
+double J_SOURCE_IY = (int) (Ny * 0.5);
+double J_SOURCE_IZ = (int) (Nz * 0.5) + 0.5;
+
+bool is_U_insideBulb(double ix,double iy,double iz){
+    return (abs(ix-J_SOURCE_IX) <= (P-0.5)
+                        &&
+                   abs(iy-J_SOURCE_IY) <= (P-0.5)
+                        &&
+                   abs(iz-J_SOURCE_IZ) <= (P-1.0) );
+
+}
+
+bool is_E_insideBulb(double ix,double iy,double iz){
+    return (abs(ix-J_SOURCE_IX) <= (P)
+                        &&
+                   abs(iy-J_SOURCE_IY) <= (P)
+                        &&
+                   abs(iz-J_SOURCE_IZ) <= (P-0.5) );
+
+}
+
+
 
 int main(){
 
@@ -157,18 +194,6 @@ int main(){
 	CImgSaver2D cimgSaver;
 
 
-    double Nx=100;
-    double Ny=100 /*+ 1*/;
-    double Nz=200;
-    double Nt=10000;
-
-    double SOURCE_IX = (int)(Nx*0.5)+0.5;
-    double SOURCE_IY = (int)(Ny*0.5)+0.5;
-    double SOURCE_IZ = (int)(Nz*0.5);
-
-    double J_SOURCE_IX = (int)(Nx*0.5);
-    double J_SOURCE_IY = (int)(Ny*0.5);
-    double J_SOURCE_IZ = (int)(Nz*0.5)+0.5;
 
     double IMPULSE_FREQ = chi;//3e8;
     double IMPULSE_TIME = 1.0/IMPULSE_FREQ;
@@ -491,12 +516,9 @@ int main(){
     Markz.fill(NORMAL);
 
 
-    const int BULB_SIZE = 4;//in cells
 
     double dix,diy,diz;
 
-
-    double P = BULB_SIZE;
 
     //bulb mark x
     dix = -P;
@@ -617,18 +639,27 @@ int main(){
 	                );
 	            */
 
-#ifdef RHS_ENABLE
-				const double n_e = avg( HdVec3D::density(U(it,ix,iy-0.5,iz-0.5)) , HdVec3D::density(U(it,ix,iy-0.5,iz+0.5)) , HdVec3D::density(U(it,ix,iy+0.5,iz-0.5)) , HdVec3D::density(U(it,ix,iy+0.5,iz+0.5)) ); // [1/m^3]
-				const double V_x = avg( HdVec3D::velocityX(U(it,ix,iy-0.5,iz-0.5)) , HdVec3D::velocityX(U(it,ix,iy-0.5,iz+0.5)) , HdVec3D::velocityX(U(it,ix,iy+0.5,iz-0.5)) , HdVec3D::velocityX(U(it,ix,iy+0.5,iz+0.5)) );
+	            double jx = 0;
+	            double hd_jx = 0;
 
-				const double jx = cze * V_x * n_e;// [A/м^2]
+#ifdef RHS_ENABLE
+
+	            if(!is_E_insideBulb(ix,iy,iz)){
+	                const double n_e = avg( HdVec3D::density(U(it,ix,iy-0.5,iz-0.5)) , HdVec3D::density(U(it,ix,iy-0.5,iz+0.5)) , HdVec3D::density(U(it,ix,iy+0.5,iz-0.5)) , HdVec3D::density(U(it,ix,iy+0.5,iz+0.5)) ); // [1/m^3]
+                    const double V_x = avg( HdVec3D::velocityX(U(it,ix,iy-0.5,iz-0.5)) , HdVec3D::velocityX(U(it,ix,iy-0.5,iz+0.5)) , HdVec3D::velocityX(U(it,ix,iy+0.5,iz-0.5)) , HdVec3D::velocityX(U(it,ix,iy+0.5,iz+0.5)) );
+
+                    hd_jx = cze * V_x * n_e;// [A/м^2]
+	            }
+
 #else
 	            const double jx = 0;//cze * V_x * n_e;// [A/м^2]
 #endif
+
+	            jx = hd_jx;
 	            Ex(it + 1, ix, iy, iz) = Ex(it, ix, iy, iz) +
 	            		DT/EPS0/EPS*( (Hz(it+0.5, ix, iy+0.5, iz) - Hz(it+0.5, ix, iy - 0.5, iz)) / dy
 	            				       -
-	            				       (Hy(it+0.5, ix, iy, iz+0.5) - Hy(it+0.5, ix, iy, iz - 0.5)) / dz
+	            				      (Hy(it+0.5, ix, iy, iz+0.5) - Hy(it+0.5, ix, iy, iz - 0.5)) / dz
 	            				       - jx
 		                );//TODO сравнить j и rot(H)
 
@@ -649,14 +680,22 @@ int main(){
 	                );
 	            */
 
+	            double jy = 0;
+	            double hd_jy = 0;
 #ifdef RHS_ENABLE
-	            const double n_e = avg( HdVec3D::density(U(it,ix-0.5,iy,iz-0.5)), HdVec3D::density(U(it,ix-0.5,iy,iz+0.5)) , HdVec3D::density(U(it,ix+0.5,iy,iz-0.5)) , HdVec3D::density(U(it,ix+0.5,iy,iz+0.5))); // [1/m^3]
-	            const double V_y = avg( HdVec3D::velocityY(U(it,ix-0.5,iy,iz-0.5)) , HdVec3D::velocityY(U(it,ix-0.5,iy,iz+0.5)) , HdVec3D::velocityY(U(it,ix+0.5,iy,iz-0.5)) , HdVec3D::velocityY(U(it,ix+0.5,iy,iz+0.5)));
+	            if(!is_E_insideBulb(ix,iy,iz)){
+	                const double n_e = avg( HdVec3D::density(U(it,ix-0.5,iy,iz-0.5)), HdVec3D::density(U(it,ix-0.5,iy,iz+0.5)) , HdVec3D::density(U(it,ix+0.5,iy,iz-0.5)) , HdVec3D::density(U(it,ix+0.5,iy,iz+0.5))); // [1/m^3]
+	                const double V_y = avg( HdVec3D::velocityY(U(it,ix-0.5,iy,iz-0.5)) , HdVec3D::velocityY(U(it,ix-0.5,iy,iz+0.5)) , HdVec3D::velocityY(U(it,ix+0.5,iy,iz-0.5)) , HdVec3D::velocityY(U(it,ix+0.5,iy,iz+0.5)));
+	                hd_jy = cze * V_y * n_e;// [A/м^2]
+	            }
 
-                const double jy = cze * V_y * n_e;// [A/м^2]
+
 #else
-	            const double jy = 0;//cze * V_y * n_e;// [A/м^2]
+	            //const double jy = 0;//cze * V_y * n_e;// [A/м^2]
 #endif
+
+	            jy = hd_jy;
+
 	            Ey(it+1, ix, iy, iz) = Ey(it, ix, iy, iz) +
 	            		DT/EPS0/EPS * (
 	        	                (Hx(it+0.5, ix, iy, iz+0.5) - Hx(it+0.5, ix, iy, iz-0.5)) / dz
@@ -683,24 +722,38 @@ int main(){
 	                );
 	            */
 
-#ifdef RHS_ENABLE
-	            const double n_e = avg( HdVec3D::density(U(it,ix-0.5,iy-0.5,iz)) , HdVec3D::density(U(it,ix-0.5,iy+0.5,iz)) ,HdVec3D::density(U(it,ix+0.5,iy-0.5,iz)) ,HdVec3D::density(U(it,ix+0.5,iy+0.5,iz))); // [1/m^3]
-	            const double V_z = avg( HdVec3D::velocityZ(U(it,ix-0.5,iy-0.5,iz)) , HdVec3D::velocityZ(U(it,ix-0.5,iy+0.5,iz)) ,HdVec3D::velocityZ(U(it,ix+0.5,iy-0.5,iz)) ,HdVec3D::velocityZ(U(it,ix+0.5,iy+0.5,iz)) );
-
-	            double jz = cze * V_z * n_e;// [A/м^2]
-#else
-	            //const double jz = 0;//cze * V_z * n_e;// [A/м^2]
 	            double jz = 0;
-#endif
+#ifdef RHS_ENABLE
 
-	            if( (ix==J_SOURCE_IX) && (iy==J_SOURCE_IY) && (iz==J_SOURCE_IZ) ){
-	                jz += sourceJz/dx/dy;
+	            double hd_jz = 0;
 
-	                cout << "sourceJz: " << sourceJz << endl;
-	                cout << "jz: " <<jz  << endl;
+	            if(!is_E_insideBulb(ix,iy,iz)){
+	                const double n_e = avg( HdVec3D::density(U(it,ix-0.5,iy-0.5,iz)) , HdVec3D::density(U(it,ix-0.5,iy+0.5,iz)) ,HdVec3D::density(U(it,ix+0.5,iy-0.5,iz)) ,HdVec3D::density(U(it,ix+0.5,iy+0.5,iz))); // [1/m^3]
+	                const double V_z = avg( HdVec3D::velocityZ(U(it,ix-0.5,iy-0.5,iz)) , HdVec3D::velocityZ(U(it,ix-0.5,iy+0.5,iz)) ,HdVec3D::velocityZ(U(it,ix+0.5,iy-0.5,iz)) ,HdVec3D::velocityZ(U(it,ix+0.5,iy+0.5,iz)) );
+
+	                hd_jz=cze * V_z * n_e;// [A/м^2]
 	            }
 
-	            if(isnan(jz)!=0){
+#else
+	            const double jz = 0;//cze * V_z * n_e;// [A/м^2]
+
+#endif
+
+
+	            double src_jz = 0;
+
+	            jz = hd_jz + src_jz;
+
+	            if( (ix==J_SOURCE_IX) && (iy==J_SOURCE_IY) && (iz==J_SOURCE_IZ) ){
+	                cout << "jz before source: " <<jz  << endl;
+	                src_jz = sourceJz/dx/dy;
+	                cout << "sourceJz: " << sourceJz << endl;
+	                cout << "jz after source: " <<jz  << endl;
+	            }
+
+	            jz = src_jz + hd_jz;
+
+	            if(isBad(jz)){
 	                cout << "bubug" << endl;
 	            }
 
@@ -888,8 +941,23 @@ int main(){
 
 	    cout << "HD step x" << endl;
 	    Fx[it].iterateInternal(1, 0, 0, GRID3D_ITERATOR {
+	        if(is_U_insideBulb(ix,iy,iz))return;
+
 	        if(Markx(ix,iy,iz)==NORMAL){
 	            Fx(it,ix,iy,iz)=HdFlowVec3D::X::riemannFlux( U(it,ix-0.5,iy,iz) , U(it,ix+0.5,iy,iz) );
+
+	            for(int i=0;i<5;i++) {
+                            if(isBad(Fx(it,ix,iy,iz)[i])) {
+                                cout << "toString(U(it,ix-0.5,iy,iz))\n";
+                                cout << toString(U(it,ix-0.5,iy,iz)) << endl;
+
+                                cout << "toString(U(it,ix+0.5,iy,iz))\n";
+                                cout << toString(U(it,ix+0.5,iy,iz)) << endl;
+
+
+                                cout << "Fx(it,ix,iy,iz)[i] " << Fx(it,ix,iy,iz)[i] << endl;
+                            }
+	            }
 	        }else if(Markx(ix,iy,iz)<0){
 	            Vector5D u = U(it, ix-0.5,iy,iz);
 
@@ -901,6 +969,12 @@ int main(){
 
                 Fx(it, ix,iy,iz) = HdFlowVec3D::X::riemannFlux(u, uw);
 
+                for(int i=0;i<5;i++) {
+                            if(isBad(Fx(it,ix,iy,iz)[i])) {
+                                cout << "Fx(it,ix,iy,iz)[i] " << Fx(it,ix,iy,iz)[i] << endl;
+                            }
+                }
+
 
 	        }else if(Markx(ix,iy,iz)>0){
 	            Vector5D u = U(it, ix+0.5,iy,iz);
@@ -911,8 +985,15 @@ int main(){
 
                 Vector5D uw = HdVec3D::fromDensityPressureVelocity(rho, p, -v, 0, 0);
 
-                Fx(it, ix,iy,iz) = HdFlowVec3D::Y::riemannFlux(uw, u);
+                Fx(it, ix,iy,iz) = HdFlowVec3D::X::riemannFlux(uw, u);
+
+                for(int i=0;i<5;i++) {
+                            if(isBad(Fx(it,ix,iy,iz)[i])) {
+                                cout << "Fx(it,ix,iy,iz)[i] " << Fx(it,ix,iy,iz)[i] << endl;
+                            }
+                        };
 	        }
+
 
 
 
@@ -920,6 +1001,8 @@ int main(){
 
 	    cout << "HD step y" << endl;
 		Fy[it].iterateInternal(0, 1, 0, GRID3D_ITERATOR {
+		    if(is_U_insideBulb(ix,iy,iz))return;
+
 		    if(Marky(ix,iy,iz)==NORMAL){
 		        Fy(it,ix,iy,iz)=HdFlowVec3D::Y::riemannFlux( U(it,ix,iy-0.5,iz) , U(it,ix,iy+0.5,iz) );
 		    }else if(Marky(ix,iy,iz)<0){
@@ -929,7 +1012,7 @@ int main(){
                 double p = HdVec3D::pressure(u);
                 double v = HdVec3D::velocityY(u);
 
-                Vector5D uw = HdVec3D::fromDensityPressureVelocity(rho, p, -v, 0, 0);
+                Vector5D uw = HdVec3D::fromDensityPressureVelocity(rho, p, 0, -v, 0);
 
                 Fy(it, ix,iy,iz) = HdFlowVec3D::Y::riemannFlux(u, uw);
 		    }else if(Marky(ix,iy,iz)>0){
@@ -939,14 +1022,21 @@ int main(){
                 double p = HdVec3D::pressure(u);
                 double v = HdVec3D::velocityY(u);
 
-                Vector5D uw = HdVec3D::fromDensityPressureVelocity(rho, p, -v, 0, 0);
+                Vector5D uw = HdVec3D::fromDensityPressureVelocity(rho, p, 0, -v, 0);
 
                 Fy(it, ix,iy,iz) = HdFlowVec3D::Y::riemannFlux(uw, u);
 		    }
+
+		    for(int i=0;i<5;i++){
+		                    if(isBad(Fy(it,ix,iy,iz)[i])){
+		                        cout << "Fy(it,ix,iy,iz)[i]" << Fy(it,ix,iy,iz)[i] << endl;
+		                    }
+		                }
 		});
 
 		cout << "HD step z" << endl;
 		Fz[it].iterateInternal(0, 0, 1, GRID3D_ITERATOR {
+		    if(is_U_insideBulb(ix,iy,iz))return;
 		    if(Markz(ix,iy,iz)==NORMAL){
 		        Fz(it,ix,iy,iz)=HdFlowVec3D::Z::riemannFlux( U(it,ix,iy,iz-0.5) , U(it,ix,iy,iz+0.5) );
 		    }else if (Markz(ix,iy,iz)<0){
@@ -956,7 +1046,7 @@ int main(){
                 double p = HdVec3D::pressure(u);
                 double v = HdVec3D::velocityZ(u);
 
-                Vector5D uw = HdVec3D::fromDensityPressureVelocity(rho, p, -v, 0, 0);
+                Vector5D uw = HdVec3D::fromDensityPressureVelocity(rho, p, 0 , 0, -v);
 
                 Fz(it, ix,iy,iz) = HdFlowVec3D::Z::riemannFlux(u, uw);
 
@@ -967,10 +1057,16 @@ int main(){
                 double p = HdVec3D::pressure(u);
                 double v = HdVec3D::velocityZ(u);
 
-                Vector5D uw = HdVec3D::fromDensityPressureVelocity(rho, p, -v, 0, 0);
+                Vector5D uw = HdVec3D::fromDensityPressureVelocity(rho, p, 0, 0, -v);
 
                 Fz(it, ix,iy,iz) = HdFlowVec3D::Z::riemannFlux(uw, u);
 		    }
+
+		    for(int i=0;i<5;i++){
+		                    if(isBad(Fz(it,ix,iy,iz)[i])){
+		                        cout << "Fz(it,ix,iy,iz)[i]" << Fz(it,ix,iy,iz)[i] << endl;
+		                    }
+		                }
 
 		});
 
@@ -1005,15 +1101,26 @@ int main(){
 
 
 		U[it + 1].iterateWhole(GRID3D_ITERATOR {
-		    if(abs(ix-J_SOURCE_IX) <= (P-0.5)
-		            &&
-		       abs(iy-J_SOURCE_IY) <= (P-0.5)
-		            &&
-		       abs(iz-J_SOURCE_IZ) <= (P-1.0) ) return;
+		    if(is_U_insideBulb(ix,iy,iz)) return;
 
 			U(it+1,ix,iy,iz)=U(it,ix,iy,iz) - DT/dx*(Fx(it,ix+0.5,iy,iz)-Fx(it,ix-0.5,iy,iz))
 			                                - DT/dy*(Fy(it,ix,iy+0.5,iz)-Fy(it,ix,iy-0.5,iz))
 			                                - DT/dz*(Fz(it,ix,iy,iz+0.5)-Fz(it,ix,iy,iz-0.5));
+
+			for(int i=0;i<5;i++){
+			    if(isBad(U(it+1,ix,iy,iz)[i])){
+			        DBGLNVAL(Fx(it,ix+0.5,iy,iz));
+			        DBGLNVAL(Fx(it,ix-0.5,iy,iz));
+
+			        DBGLNVAL(Fy(it,ix,iy+0.5,iz));
+			        DBGLNVAL(Fy(it,ix,iy-0.5,iz));
+
+			        DBGLNVAL(Fz(it,ix,iy,iz+0.5));
+			        DBGLNVAL(Fz(it,ix,iy,iz-0.5));
+
+			        cout << endl;
+			    }
+			}
 
 //			DBGVAL( Fx(it,ix+0.5,iy,iz)[0] );
 //			DBGVAL( Fx(it,ix+0.5,iy,iz)[1] );
@@ -1105,6 +1212,18 @@ int main(){
 
 			U(it+1,ix,iy,iz) = HdVec3D::fromDesityVelocityInternalEnergyPerVolumeUnit(rho,wx,wy,wz,TE);
 
+			for(int i=0;i<5;i++) {
+                        if(isBad(U(it+1,ix,iy,iz)[i])) {
+                            DBGLNVAL(rho);
+                            DBGLNVAL(wx);
+                            DBGLNVAL(wy);
+                            DBGLNVAL(wz);
+                            DBGLNVAL(TE);
+
+                            DBGLNVAL(U(it+1,ix,iy,iz));
+                            cout << "there" << endl;
+                        }
+                    }
 
 //			DBGLN("\n\nafter dissipation");
 //
@@ -1181,6 +1300,18 @@ int main(){
             vtiSaver.save(U[it],frame("pressure_",it,"vti"),GRID3D_CALCULATOR{
                 return HdVec3D::pressure( U(it,ix,iy,iz) );
             });
+
+            vtiSaver.save(U[it], frame("Vx_", it, "vti"), GRID3D_CALCULATOR {
+                        return HdVec3D::velocityX( U(it,ix,iy,iz) );
+                    });
+
+            vtiSaver.save(U[it], frame("Vy_", it, "vti"), GRID3D_CALCULATOR {
+                                    return HdVec3D::velocityY( U(it,ix,iy,iz) );
+                                });
+
+            vtiSaver.save(U[it], frame("Vz_", it, "vti"), GRID3D_CALCULATOR {
+                                    return HdVec3D::velocityZ( U(it,ix,iy,iz) );
+                                });
 
 
 			vtiSaver.save(U[it],frame("logT_",it,"vti"),GRID3D_CALCULATOR{
@@ -1293,10 +1424,10 @@ void rhs(int *ptrN,double *t,double *u,double *f){
     //const double Q_w = e*n_e*sqrt( sqr(E_x*V_x , E_y*V_y , E_z*V_z) );
     //const double Q_w = e*n_e*( E_x*V_x + E_y*V_y + E_z*V_z );
     const double Q_w = -e*n_e*( E_x*V_x + E_y*V_y + E_z*V_z );
-    DBGVAL(Q_w);
-    DBGVAL(e*n_e*E_x*V_x  /n_e);
-    DBGVAL(e*n_e*E_y*V_y  /n_e);
-    DBGVAL(e*n_e*E_z*V_z  /n_e);
+//    DBGVAL(Q_w);
+//    DBGVAL(e*n_e*E_x*V_x  /n_e);
+//    DBGVAL(e*n_e*E_y*V_y  /n_e);
+//    DBGVAL(e*n_e*E_z*V_z  /n_e);
 
 
 
@@ -1352,12 +1483,12 @@ void rhs(int *ptrN,double *t,double *u,double *f){
 
 
 
-    DBGVAL(-(v_ei )*V_y);
-    DBGVAL(-(     v_e0)*V_y);
-    DBGVAL(-  e*E_y/m);
-    DBGVAL(-E_y);
-    DBGVAL(e);
-    DBGVAL(m);
+//    DBGVAL(-(v_ei )*V_y);
+//    DBGVAL(-(     v_e0)*V_y);
+//    DBGVAL(-  e*E_y/m);
+//    DBGVAL(-E_y);
+//    DBGVAL(e);
+//    DBGVAL(m);
 
 
 
@@ -1394,7 +1525,7 @@ if((isnan(f[4])!=0) || (isinf(f[4])!=0)) return (10);
 if(u[4]<0)return 11;
 #endif
 
-    #if(1)
+    #if(0)
     DBGVAL(dt / *t);
 
     DBGVAL(j_0e );
