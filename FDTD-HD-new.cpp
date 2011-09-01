@@ -6,7 +6,7 @@
 
 using namespace std;
 
-const int NUM_PROC = 4;
+const int NUM_PROC = 16;
 
 
 const double PI_A0_SQR = 0.88E-16     *1E-4;// [м^2]
@@ -122,9 +122,9 @@ UserData G_userdata[NUM_PROC];
 
 double dt;
 
-double Nx = 100;
-double Ny = 100 /*+ 1*/;
-double Nz = 100;
+double Nx = 128;
+double Ny = 128 /*+ 1*/;
+double Nz = 128;
 double Nt = 10000;
 
 const int BULB_SIZE = 4;//in cells
