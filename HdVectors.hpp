@@ -489,11 +489,11 @@ Vector5D riemannFlux(const Vector5D& u1,const Vector5D& u2){
 
 	Real4 result=SolveRiemannProblem(HdVec3D::density(u1),
 			HdVec3D::internalEnergyPerMassUnit(u1),
-			HdVec3D::velocityX(u1),
+			HdVec3D::velocityY(u1),
 					GAMMA,s1,
 					HdVec3D::density(u2),
 					HdVec3D::internalEnergyPerMassUnit(u2),
-					HdVec3D::velocityX(u2),
+					HdVec3D::velocityY(u2),
 					GAMMA,s2);
     pressure=Pressure(result);
     density=Density(result);
@@ -531,11 +531,11 @@ Vector5D riemannFlux(const Vector5D& u1,const Vector5D& u2){
 
 	Real4 result=SolveRiemannProblem(HdVec3D::density(u1),
 			HdVec3D::internalEnergyPerMassUnit(u1),
-			HdVec3D::velocityX(u1),
+			HdVec3D::velocityZ(u1),
 					GAMMA,s1,
 					HdVec3D::density(u2),
 					HdVec3D::internalEnergyPerMassUnit(u2),
-					HdVec3D::velocityX(u2),
+					HdVec3D::velocityZ(u2),
 					GAMMA,s2);
     pressure=Pressure(result);
     density=Density(result);
