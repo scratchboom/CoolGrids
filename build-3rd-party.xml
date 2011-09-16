@@ -1,20 +1,18 @@
 <?xml version="1.0"?>
 <project name="3rd-party" basedir=".">
 
+	<!--
 	<property name="ICC_LIBRARY_PATH" value="/opt/intel/Compiler/11.1/069/lib/ia32/"/>
 	<property name="MKL_LIBRARY_PATH" value="/opt/intel/mkl/10.2.5.035/lib/32/"/>
-
 	<property name="VTK_PATH" value="/home/gordon/libs/vtk-installed/include/vtk-5.6"/>
-
-
-
 	<property name="LD_LIBRARY_PATH" value="${ICC_LIBRARY_PATH}:${MKL_LIBRARY_PATH}"/>
+	-->
 
 
 	<import file="macros.xml"/>
 
-	<target name="zlib">
-		<exec dir="./3rd-party/zlib/1.2.5" executable="icc" failonerror="true">
+	<target name="build zlib">
+		<exec dir="./3prt/zlib/zlib-1.2.5" executable="icc" failonerror="true">
 			<arg line="				
 				-c
             	adler32.c
@@ -34,8 +32,10 @@
                 zutil.c"/>
 		</exec>
 
-		<exec dir="./3rd-party/zlib/1.2.5" executable="ar" failonerror="true">
-			<arg line="rc libzlib.a
+		<mkdir dir="./3prt/zlib/zlib-1.2.5/compiled/${os.arch}"/>
+
+		<exec dir="./3prt/zlib/zlib-1.2.5" executable="ar" failonerror="true">
+			<arg line="rc compiled/${os.arch}/libzlib.a
     	                adler32.o
     	                compress.o
     	                crc32.o
@@ -52,14 +52,18 @@
     	                uncompr.o
     	                zutil.o"/>
 		</exec>
-		<delete dir="./3rd-party/zlib/1.2.5" includes="*.o"/>
+		<delete dir="./3prt/zlib/zlib-1.2.5" includes="*.o"/>
 	</target>
 
-	<target name="libpng">
-		<exec dir="./3rd-party/libPNG/1.4.4" executable="icc" failonerror="true">
+	<target name="build libpng">
+
+		<exec dir="./3prt/libpng/libpng-1.5.4" executable="./configure"/>
+		<exec dir="./3prt/libpng/libpng-1.5.4" executable="make"/>
+
+		<exec dir="./3prt/libpng/libpng-1.5.4" executable="icc" failonerror="true">
 			<arg line="				
-				-I${basedir}/3rd-party/zlib/1.2.5
-	            	       -L${basedir}/3rd-party/zlib/1.2.5
+				-I${basedir}/3prt/zlib/zlib-1.2.5
+	            	       -L${basedir}/3prt/zlib/zlib-1.2.5/compiled/${os.arch}
 	            	       -c
 	            	       png.c
 	            	       pngerror.c 
@@ -76,11 +80,13 @@
 	            	       pngwrite.c 
 	            	       pngwtran.c 
 	            	       pngwutil.c
-				           -lzlib"/>			
+				           -lzlib"/>
 		</exec>
 
-		<exec dir="./3rd-party/libPNG/1.4.4" executable="ar" failonerror="true">
-			<arg line="rc libpng.a                           
+		<mkdir dir="./3prt/libpng/libpng-1.5.4/compiled/${os.arch}"/>
+
+		<exec dir="./3prt/libpng/libpng-1.5.4" executable="ar" failonerror="true">
+			<arg line="rc compiled/${os.arch}/libpng.a                           
                            png.o
                            pngerror.o 
                            pngget.o   
@@ -97,45 +103,107 @@
                            pngwtran.o 
                            pngwutil.o"/>
 		</exec>
-		<delete dir="./3rd-party/libPNG/1.4.4" includes="*.o"/>
+		<delete dir="./3prt/libpng/libpng-1.5.4" includes="*.o"/>
 	</target>
 
-	<target name="libjpeg">
-		<exec dir="./3rd-party/libJPEG/8b" executable="icc" failonerror="true">
-			<arg line="				
-				-c
-	                	jaricom.c jcapimin.c jcapistd.c jcarith.c jccoefct.c jccolor.c
-	                	        jcdctmgr.c jchuff.c jcinit.c jcmainct.c jcmarker.c jcmaster.c
-	                	        jcomapi.c jcparam.c jcprepct.c jcsample.c jctrans.c jdapimin.c
-	                	        jdapistd.c jdarith.c jdatadst.c jdatasrc.c jdcoefct.c jdcolor.c
-	                	        jddctmgr.c jdhuff.c jdinput.c jdmainct.c jdmarker.c jdmaster.c
-	                	        jdmerge.c jdpostct.c jdsample.c jdtrans.c jerror.c jfdctflt.c
-	                	        jfdctfst.c jfdctint.c jidctflt.c jidctfst.c jidctint.c jquant1.c
-	                	        jquant2.c jutils.c jmemmgr.c"/>
+	<target name="build vtk">
+		<exec dir="./3prt/VTK-extracted" executable="cmake" failonerror="true" >
+
+			<env key="CC" value="icc"/>
+			<env key="CXX" value="icpc"/>
+
+			<arg line="-D CMAKE_INSTALL_PREFIX=${basedir}/3prt/VTK/${os.arch}" />
+			<arg line="-D CMAKE_BUILD_TYPE=Release" />
+			<arg line="-D VTK_USE_PARALLEL=ON" />
+			<arg line="-D BUILD_EXAMPLES=OFF" />
+			<arg line="-D BUILD_TESTING=OFF" />
+
+		
+			<env key="VTK_USE_PARALLEL" value="ON"/>
+			<env key="BUILD_EXAMPLES" value="OFF"/>
+			<env key="BUILD_TESTING" value="OFF"/>
+
+			<arg line="."/>
 		</exec>
 
-		<exec dir="./3rd-party/libJPEG/8b" executable="ar" failonerror="true">
-			<arg line="rc libjpeg.a                           
-	                	jaricom.o jcapimin.o jcapistd.o jcarith.o jccoefct.o jccolor.o
-	                	                                jcdctmgr.o jchuff.o jcinit.o jcmainct.o jcmarker.o jcmaster.o
-	                	                                jcomapi.o jcparam.o jcprepct.o jcsample.o jctrans.o jdapimin.o
-	                	                                jdapistd.o jdarith.o jdatadst.o jdatasrc.o jdcoefct.o jdcolor.o
-	                	                                jddctmgr.o jdhuff.o jdinput.o jdmainct.o jdmarker.o jdmaster.o
-	                	                                jdmerge.o jdpostct.o jdsample.o jdtrans.o jerror.o jfdctflt.o
-	                	                                jfdctfst.o jfdctint.o jidctflt.o jidctfst.o jidctint.o jquant1.o
-	                	                                jquant2.o jutils.o jmemmgr.o"/>
+		<exec dir="./3prt/VTK-extracted" executable="make" failonerror="true"/>
+
+		<exec dir="./3prt/VTK-extracted" executable="make" failonerror="true">
+			<arg line="install"/>
 		</exec>
-		<delete dir="./3rd-party/libJPEG/8b" includes="*.o"/>
+
+		<delete dir="./3prt/VTK-extracted"/>
 	</target>
-	
-    <target name="openjpeg">        
-    </target>	
 
-	<target name="all" depends="zlib,libpng,libjpeg"/>
-	
+
+	<target name="all" />
+
 	<target name="some">
-		<echo message="${os.arch}"/>
+		<echo message="${os.arch}" />
 	</target>
 
+	<target name="get Boost">
+		<exec dir="./3prt" executable="svn">
+			<arg line="export http://svn.boost.org/svn/boost/tags/release/Boost_1_47_0/boost boost"/>
+		</exec>
+	</target>
+
+	<target name="get vtk">
+		<exec dir="./3prt" executable="wget">
+			<arg line="-O vtk.tar.gz http://www.vtk.org/files/release/5.8/vtk-5.8.0.tar.gz"/>
+		</exec>
+
+		<exec dir="./3prt" executable="tar">
+			<arg line="xvzf vtk.tar.gz" />
+		</exec>
+
+		<delete file="./3prt/vtk.tar.gz"/>
+
+		<move file="./3prt/VTK" tofile="./3prt/VTK-extracted" />
+	</target>
+
+	<target name="get CImg">
+		<mkdir dir="./3prt/CImg"/>
+
+		<exec dir="./3prt/CImg" executable="wget">
+			<arg line="-O CImg.zip http://downloads.sourceforge.net/project/cimg/CImg-1.4.9.zip"/>
+		</exec>
+
+		<exec dir="./3prt/CImg" executable="unzip">
+			<arg line="CImg.zip" />
+		</exec>
+	</target>
+
+	<target name="get zlib">
+		<mkdir dir="./3prt/zlib"/>
+
+		<exec dir="./3prt/zlib" executable="wget">
+			<arg line="wget -O zlib.tar.gz http://zlib.net/zlib-1.2.5.tar.gz"/>
+		</exec>
+
+		<exec dir="./3prt/zlib" executable="tar">
+			<arg line="xvzf zlib.tar.gz" />
+		</exec>
+
+		<delete file="./3prt/zlib/zlib.tar.gz"/>
+
+	</target>
+
+	<target name="get libpng">
+		<mkdir dir="./3prt/libpng"/>
+
+		<exec dir="./3prt/libpng" executable="wget">
+			<arg line="wget -O libpng.tar.xz http://download.sourceforge.net/libpng/libpng-1.5.4.tar.xz"/>
+		</exec>
+
+		<exec dir="./3prt/libpng" executable="tar">
+			<arg line="Jxf libpng.tar.xz" />
+		</exec>
+
+		<delete file="./3prt/libpng/libpng.tar.xz"/>
+	</target>
+
+
+	<!-- https://gforge.inria.fr/frs/download.php/28501/CGAL-3.8.tar.xz -->
 
 </project>
