@@ -17,8 +17,10 @@
 			<env key="CC" value="icc" />
 			<env key="CXX" value="icpc" />
 			<env key="AR" value="xiar" />
+			<env key="LD" value="xild" />
 
 			<arg line="--prefix=../${os.arch}" />
+			<arg line="--static" />
 
 		</exec>
 
