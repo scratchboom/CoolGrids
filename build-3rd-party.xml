@@ -12,7 +12,7 @@
 	<import file="macros.xml"/>
 
 	<target name="build zlib">
-		<exec dir="./3prt/zlib/zlib-1.2.5" executable=""="./configure">
+		<exec dir="./3prt/zlib/zlib-1.2.5" executable="./configure">
 
 			<env key="CC" value="icc" />
 			<env key="CXX" value="icpc" />
