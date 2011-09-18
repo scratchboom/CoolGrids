@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <project name="3rd-party" basedir=".">
-
+	
 	<!--
 	<property name="ICC_LIBRARY_PATH" value="/opt/intel/Compiler/11.1/069/lib/ia32/"/>
 	<property name="MKL_LIBRARY_PATH" value="/opt/intel/mkl/10.2.5.035/lib/32/"/>
@@ -193,7 +193,7 @@
 		<mkdir dir="./3prt/libpng"/>
 
 		<exec dir="./3prt/libpng" executable="wget">
-			<arg line="wget -O libpng.tar.xz http://download.sourceforge.net/libpng/libpng-1.5.4.tar.xz"/>
+			<arg line="-O libpng.tar.xz http://download.sourceforge.net/libpng/libpng-1.5.4.tar.xz"/>
 		</exec>
 
 		<exec dir="./3prt/libpng" executable="tar">
@@ -202,8 +202,13 @@
 
 		<delete file="./3prt/libpng/libpng.tar.xz"/>
 	</target>
+	
+	<target name="init">
+		<mkdir dir="./3prt"/>
+	</target>
 
-
+	
+	
 	<!-- https://gforge.inria.fr/frs/download.php/28501/CGAL-3.8.tar.xz -->
 
 </project>
