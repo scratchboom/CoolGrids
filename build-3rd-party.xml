@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <project name="3rd-party" basedir=".">
-	
+
 	<!--
 	<property name="ICC_LIBRARY_PATH" value="/opt/intel/Compiler/11.1/069/lib/ia32/"/>
 	<property name="MKL_LIBRARY_PATH" value="/opt/intel/mkl/10.2.5.035/lib/32/"/>
@@ -12,98 +12,50 @@
 	<import file="macros.xml"/>
 
 	<target name="build zlib">
-		<exec dir="./3prt/zlib/zlib-1.2.5" executable="icc" failonerror="true">
-			<arg line="				
-				-c
-            	adler32.c
-                compress.c
-                crc32.c
-                deflate.c
-                gzclose.c
-                gzlib.c
-                gzread.c
-                gzwrite.c
-                inflate.c
-                infback.c
-                inftrees.c
-                inffast.c
-                trees.c
-                uncompr.c
-                zutil.c"/>
+		<exec dir="./3prt/zlib/zlib-1.2.5" command="./configure">
+
+			<env key="CC" value="icc" />
+			<env key="CXX" value="icpc" />
+			<env key="AR" value="xiar" />
+
+			<arg line="--prefix=../${os.arch}" />
+
 		</exec>
 
-		<mkdir dir="./3prt/zlib/zlib-1.2.5/compiled/${os.arch}"/>
-
-		<exec dir="./3prt/zlib/zlib-1.2.5" executable="ar" failonerror="true">
-			<arg line="rc compiled/${os.arch}/libzlib.a
-    	                adler32.o
-    	                compress.o
-    	                crc32.o
-    	                deflate.o
-    	                gzclose.o
-    	                gzlib.o
-    	                gzread.o
-    	                gzwrite.o
-    	                inflate.o
-    	                infback.o
-    	                inftrees.o
-    	                inffast.o
-    	                trees.o
-    	                uncompr.o
-    	                zutil.o"/>
+		<exec dir="./3prt/zlib/zlib-1.2.5" executable="make" failonerror="true"/>
+		<exec dir="./3prt/zlib/zlib-1.2.5" executable="make" failonerror="true">
+			<arg line="install"/>
 		</exec>
-		<delete dir="./3prt/zlib/zlib-1.2.5" includes="*.o"/>
+
+		<mkdir dir="./3prt/zlib/${os.arch}"/>
+		
+		<delete dir="./3prt/zlib/zlib-1.2.5"/>
+
 	</target>
 
 	<target name="build libpng">
 
-		<exec dir="./3prt/libpng/libpng-1.5.4" executable="./configure"/>
-		<exec dir="./3prt/libpng/libpng-1.5.4" executable="make"/>
+		<exec dir="./3prt/libpng/libpng-1.5.4" executable="./configure" failonerror="true">
+			<env key="CC" value="icc" />
+			<env key="CXX" value="icpc" />
+			<env key="AR" value="xiar" />
+			<env key="LDFLAGS" value="-L${basedir}/3prt/zlib/lib" />
+			<env key="CPPFLAGS" value="-I${basedir}/3prt/zlib/include" />			
 
-		<exec dir="./3prt/libpng/libpng-1.5.4" executable="icc" failonerror="true">
-			<arg line="				
-				-I${basedir}/3prt/zlib/zlib-1.2.5
-	            	       -L${basedir}/3prt/zlib/zlib-1.2.5/compiled/${os.arch}
-	            	       -c
-	            	       png.c
-	            	       pngerror.c 
-	            	       pngget.c   
-                           pngmem.c   
-                           pngpread.c 
-                           pngread.c  
-                           pngrio.c   
-	            	       pngrtran.c 
-	            	       pngrutil.c 
-	            	       pngset.c   	            	      
-	            	       pngtrans.c 
-	            	       pngwio.c   
-	            	       pngwrite.c 
-	            	       pngwtran.c 
-	            	       pngwutil.c
-				           -lzlib"/>
+			<arg line="--prefix=${basedir}/3prt/libpng/${os.arch}" />
+			<arg line="--enable-shared=false" />
+			
 		</exec>
 
-		<mkdir dir="./3prt/libpng/libpng-1.5.4/compiled/${os.arch}"/>
+		<exec dir="./3prt/libpng/libpng-1.5.4" executable="make" failonerror="true"/>
 
-		<exec dir="./3prt/libpng/libpng-1.5.4" executable="ar" failonerror="true">
-			<arg line="rc compiled/${os.arch}/libpng.a                           
-                           png.o
-                           pngerror.o 
-                           pngget.o   
-                           pngmem.o   
-                           pngpread.o 
-                           pngread.o  
-                           pngrio.o   
-                           pngrtran.o 
-                           pngrutil.o 
-                           pngset.o                           
-                           pngtrans.o 
-                           pngwio.o   
-                           pngwrite.o 
-                           pngwtran.o 
-                           pngwutil.o"/>
+		<exec dir="./3prt/libpng/libpng-1.5.4" executable="make" failonerror="true">
+			<arg line="install"/>
 		</exec>
-		<delete dir="./3prt/libpng/libpng-1.5.4" includes="*.o"/>
+		
+	    <delete dir="./3prt/libpng/libpng-1.5.4"/>
+
+
 	</target>
 
 	<target name="build vtk">
@@ -112,13 +64,12 @@
 			<env key="CC" value="icc"/>
 			<env key="CXX" value="icpc"/>
 
-			<arg line="-D CMAKE_INSTALL_PREFIX=${basedir}/3prt/VTK/${os.arch}" />
+			<arg line="-D CMAKE_INSTALL_PREFIX=${basedir}/3prt/vtk/${os.arch}" />
 			<arg line="-D CMAKE_BUILD_TYPE=Release" />
 			<arg line="-D VTK_USE_PARALLEL=ON" />
 			<arg line="-D BUILD_EXAMPLES=OFF" />
 			<arg line="-D BUILD_TESTING=OFF" />
 
-		
 			<env key="VTK_USE_PARALLEL" value="ON"/>
 			<env key="BUILD_EXAMPLES" value="OFF"/>
 			<env key="BUILD_TESTING" value="OFF"/>
@@ -126,23 +77,23 @@
 			<arg line="."/>
 		</exec>
 
-		<exec dir="./3prt/VTK-extracted" executable="make" failonerror="true"/>
+		<exec dir="./3prt/vtk-extracted" executable="make" failonerror="true"/>
 
-		<exec dir="./3prt/VTK-extracted" executable="make" failonerror="true">
+		<exec dir="./3prt/vtk-extracted" executable="make" failonerror="true">
 			<arg line="install"/>
 		</exec>
 
-		<delete dir="./3prt/VTK-extracted"/>
+		<delete dir="./3prt/vtk-extracted"/>
 	</target>
 
 
-	<target name="all" />
+	<target name="all" depends="get boost,get CImg,build zlib,get libpng,get vtk,build zlib,build libpng,get vtk"/>
 
 	<target name="some">
 		<echo message="${os.arch}" />
 	</target>
 
-	<target name="get Boost">
+	<target name="get boost">
 		<exec dir="./3prt" executable="svn">
 			<arg line="export http://svn.boost.org/svn/boost/tags/release/Boost_1_47_0/boost boost"/>
 		</exec>
@@ -202,13 +153,13 @@
 
 		<delete file="./3prt/libpng/libpng.tar.gz"/>
 	</target>
-	
+
 	<target name="init">
 		<mkdir dir="./3prt"/>
 	</target>
 
-	
-	
+
+
 	<!-- https://gforge.inria.fr/frs/download.php/28501/CGAL-3.8.tar.xz -->
 
 </project>
