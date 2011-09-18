@@ -192,15 +192,15 @@
 	<target name="get libpng">
 		<mkdir dir="./3prt/libpng"/>
 
-		<exec dir="./3prt/libpng" executable="wget">
-			<arg line="-O libpng.tar.xz http://download.sourceforge.net/libpng/libpng-1.5.4.tar.xz"/>
+		<exec dir="./3prt/libpng" executable="wget" failonerror="true">
+			<arg line="-O libpng.tar.gz http://prdownloads.sourceforge.net/libpng/libpng-1.5.4.tar.gz"/>
 		</exec>
 
-		<exec dir="./3prt/libpng" executable="tar">
-			<arg line="Jxf libpng.tar.xz" />
+		<exec dir="./3prt/libpng" executable="tar" failonerror="true">
+			<arg line="xvzf libpng.tar.gz" />
 		</exec>
 
-		<delete file="./3prt/libpng/libpng.tar.xz"/>
+		<delete file="./3prt/libpng/libpng.tar.gz"/>
 	</target>
 	
 	<target name="init">
