@@ -19,7 +19,7 @@
 			<env key="AR" value="xiar" />
 			<env key="LD" value="xild" />
 
-			<arg line="--prefix=../${os.arch}" />
+			<arg line="--prefix=${basedir}/${os.arch}" />
 			<arg line="--static" />
 
 		</exec>
