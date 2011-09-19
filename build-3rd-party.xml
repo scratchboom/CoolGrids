@@ -12,15 +12,15 @@
 	<import file="macros.xml"/>
 
 	<target name="build zlib">
-		<exec dir="./3prt/zlib/zlib-1.2.5" executable="./configure">
+		<exec dir="./3prt/zlib/zlib-1.2.5" executable="./configure" failonerror="true"> 
 
 			<env key="CC" value="icc" />
 			<env key="CXX" value="icpc" />
 			<env key="AR" value="xiar" />
 			<env key="LD" value="xild" />
-
-			<arg line="--prefix=${basedir}/${os.arch}" />
-			<arg line="--static" />
+			
+			<arg line="--prefix=${basedir}/3prt/${os.arch}" />
+			
 
 		</exec>
 
@@ -28,9 +28,7 @@
 		<exec dir="./3prt/zlib/zlib-1.2.5" executable="make" failonerror="true">
 			<arg line="install"/>
 		</exec>
-
-		<mkdir dir="./3prt/zlib/${os.arch}"/>
-		
+	
 		<delete dir="./3prt/zlib/zlib-1.2.5"/>
 
 	</target>
