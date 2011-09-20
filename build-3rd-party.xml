@@ -9,18 +9,18 @@
 	-->
 
 
-	<import file="macros.xml"/>
+	<!--<import file="macros.xml"/>-->
 
 	<target name="build zlib">
-		<exec dir="./3prt/zlib/zlib-1.2.5" executable="./configure" failonerror="true"> 
+		<exec dir="./3prt/zlib/zlib-1.2.5" executable="./configure" failonerror="true">
 
 			<env key="CC" value="icc" />
 			<env key="CXX" value="icpc" />
 			<env key="AR" value="xiar" />
 			<env key="LD" value="xild" />
-			
+
 			<arg line="--prefix=${basedir}/3prt/zlib/${os.arch}" />
-			
+
 
 		</exec>
 
@@ -28,7 +28,7 @@
 		<exec dir="./3prt/zlib/zlib-1.2.5" executable="make" failonerror="true">
 			<arg line="install"/>
 		</exec>
-	
+
 		<delete dir="./3prt/zlib/zlib-1.2.5"/>
 
 	</target>
@@ -39,12 +39,13 @@
 			<env key="CC" value="icc" />
 			<env key="CXX" value="icpc" />
 			<env key="AR" value="xiar" />
+			<env key="LD" value="xild" />
 			<env key="LDFLAGS" value="-L${basedir}/3prt/zlib/lib" />
-			<env key="CPPFLAGS" value="-I${basedir}/3prt/zlib/include" />			
+			<env key="CPPFLAGS" value="-I${basedir}/3prt/zlib/include" />
 
 			<arg line="--prefix=${basedir}/3prt/libpng/${os.arch}" />
 			<arg line="--enable-shared=false" />
-			
+
 		</exec>
 
 		<exec dir="./3prt/libpng/libpng-1.5.4" executable="make" failonerror="true"/>
@@ -52,17 +53,18 @@
 		<exec dir="./3prt/libpng/libpng-1.5.4" executable="make" failonerror="true">
 			<arg line="install"/>
 		</exec>
-		
-	    <delete dir="./3prt/libpng/libpng-1.5.4"/>
 
+		<delete dir="./3prt/libpng/libpng-1.5.4"/>
 
 	</target>
 
 	<target name="build vtk">
-		<exec dir="./3prt/VTK-extracted" executable="cmake" failonerror="true" >
+		<exec dir="./3prt/vtk-extracted" executable="cmake" failonerror="true" >
 
 			<env key="CC" value="icc"/>
 			<env key="CXX" value="icpc"/>
+			<env key="AR" value="xiar" />
+			<env key="LD" value="xild" />				
 
 			<arg line="-D CMAKE_INSTALL_PREFIX=${basedir}/3prt/vtk/${os.arch}" />
 			<arg line="-D CMAKE_BUILD_TYPE=Release" />
@@ -87,16 +89,29 @@
 	</target>
 
 
-	<target name="all" depends="get boost,get CImg,build zlib,get libpng,get vtk,build zlib,build libpng,get vtk"/>
+	<target name="all" depends="clean,init,
+		get boost,
+		get CImg,
+		get zlib,build zlib,
+		get libpng,build libpng,
+		get vtk,build vtk" />
 
-	<target name="some">
+	<target name="print arch">
 		<echo message="${os.arch}" />
 	</target>
 
 	<target name="get boost">
-		<exec dir="./3prt" executable="svn">
-			<arg line="export http://svn.boost.org/svn/boost/tags/release/Boost_1_47_0/boost boost"/>
+
+		<exec dir="./3prt" executable="wget">
+			<arg line="-O boost.tar.gz http://sourceforge.net/projects/boost/files/boost/1.47.0/boost_1_47_0.tar.gz/download" />
 		</exec>
+		
+        <exec dir="./3prt" executable="tar">
+            <arg line="xvzf boost.tar.gz" />
+        </exec>
+		
+        <delete file="./3prt/boost.tar.gz"/>
+		
 	</target>
 
 	<target name="get vtk">
@@ -110,7 +125,7 @@
 
 		<delete file="./3prt/vtk.tar.gz"/>
 
-		<move file="./3prt/VTK" tofile="./3prt/VTK-extracted" />
+		<move file="./3prt/VTK" tofile="./3prt/vtk-extracted" />
 	</target>
 
 	<target name="get CImg">
@@ -156,6 +171,10 @@
 
 	<target name="init">
 		<mkdir dir="./3prt"/>
+	</target>
+
+	<target name="clean">
+		<delete dir="./3prt" />
 	</target>
 
 
