@@ -13,10 +13,10 @@
 
 	<target name="build zlib">
 		<exec dir="./3prt/zlib/zlib-1.2.5" executable="./configure" failonerror="true">
-
+                        <!--
 			<env key="CC" value="icc" />
 			<env key="CXX" value="icpc" />
-			<env key="AR" value="xiar" />
+			<env key="AR" value="xiar" /> -->
 			<!--<env key="LD" value="xild" />-->
 
 			<arg line="--prefix=${basedir}/3prt/zlib/${os.arch}" />
