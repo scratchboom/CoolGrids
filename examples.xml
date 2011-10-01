@@ -88,6 +88,10 @@
 	<target name="build VtkDipoleField">
 		<icc mainfile="VtkDipoleField" />
 	</target>
+	
+	<target name="build VtuWriterTest">
+	    <icc mainfile="VtuWriterTest" />
+	</target>
 
 	<target name="build MovingChargeField">
 		<icc mainfile="MovingChargeField" />

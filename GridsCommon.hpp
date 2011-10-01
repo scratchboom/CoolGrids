@@ -32,6 +32,7 @@
 #include "IO.hpp"
 #include "MpiWrapper.hpp"
 
+#define cimg_display 0
 #include <CImg.h>
 
 #include "DefineSwitchKeys.hpp"

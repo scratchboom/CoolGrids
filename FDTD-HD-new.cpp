@@ -6,7 +6,7 @@
 
 using namespace std;
 
-const int NUM_PROC = 16;
+const int NUM_PROC = 4;
 
 
 const double PI_A0_SQR = 0.88E-16     *1E-4;// [м^2]
@@ -122,9 +122,9 @@ UserData G_userdata[NUM_PROC];
 
 double dt;
 
-double Nx = 128;
-double Ny = 128 /*+ 1*/;
-double Nz = 128;
+double Nx = 80;
+double Ny = 80 /*+ 1*/;
+double Nz = 80;
 double Nt = 10000;
 
 const int BULB_SIZE = 4;//in cells
@@ -229,6 +229,16 @@ int main(){
 
     double DT = 0.4*dx/C;
     dt = DT;//TODO remove global dt
+
+    DBGVAL(dx);
+    DBGVAL(dt);
+    DBGVAL(IMPULSE_LENGTH);
+    DBGVAL(IMPULSE_TIME);
+    DBGVAL(IMPULSE_FREQ);
+    DBGVAL(J_AMPLITUDE);
+    DBGVAL(J_AMPLITUDE/dx/dy);
+    DBGVAL(BULB_SIZE*2.0*dx);
+    DBGVAL(Nx*dx);
 
 
     std::cout << "stability parameters:" << std::endl;
