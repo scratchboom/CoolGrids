@@ -28,8 +28,8 @@
                            -I/usr/include/mpich2
                            
                     
-                           ./3prt/zlib/${os.arch}/lib/libz.a
                            ./3prt/libpng/${os.arch}/lib/libpng.a
+                	       ./3prt/zlib/${os.arch}/lib/libz.a
 
                            ./3prt/vtk/${os.arch}/lib/vtk-5.8/libvtkFiltering.a
                            ./3prt/vtk/${os.arch}/lib/vtk-5.8/libvtkIO.a
