@@ -1,5 +1,5 @@
-#include "CImg.h"
-#include <iostream>
+
+#include "GridsCommon.hpp"
 
 using namespace cimg_library;
 

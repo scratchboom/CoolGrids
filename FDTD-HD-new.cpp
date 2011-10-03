@@ -1,6 +1,7 @@
 
 #include "GridsCommon.hpp"
-#include "intel_ode.h"
+
+//#include "intel_ode.h"
 
 #define RHS_ENABLE 1
 

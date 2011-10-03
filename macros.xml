@@ -7,12 +7,15 @@
             <mkdir dir="./bin/@{mainfile}"/>
             <!--  
             -g -O0 
-                    -debug all
+             -debug all
+                    
+             -I./3rd-party/IntelOdeSolver/include
+                                               
+             ./3rd-party/IntelOdeSolver/lib/ia32/libiode_ia32.a
             -->
             <exec executable="icpc" failonerror="true">
                 <arg line="-U__GXX_EXPERIMENTAL_CXX0X__
                            @{mainfile}.cpp
-                    
                                         
                            -o ./bin/@{mainfile}/@{mainfile}.exe
                            
@@ -21,8 +24,6 @@
                            -I./3prt/zlib/${os.arch}/include
                            -I./3prt/libpng/${os.arch}/include
                 	       -I./3prt/vtk/${os.arch}/include/vtk-5.8
-                	
-                           -I./3rd-party/IntelOdeSolver/include
                            
                            -I/usr/include/mpich2
                            
@@ -35,8 +36,6 @@
                            ./3prt/vtk/${os.arch}/lib/vtk-5.8/libvtkCommon.a
                 	       ./3prt/vtk/${os.arch}/lib/vtk-5.8/libvtkzlib.a
                 	       ./3prt/vtk/${os.arch}/lib/vtk-5.8/libvtksys.a
-                	
-                           ./3rd-party/IntelOdeSolver/lib/ia32/libiode_ia32.a                    
                     
                            -std=c++0x -openmp"/>
             </exec>            
